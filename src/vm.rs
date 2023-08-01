@@ -14,8 +14,12 @@ pub(crate) enum InterpretResult {
 #[derive(Clone, Debug)]
 pub(crate) enum Opcode {
     Constant = 0,
-    Negate = 1,
-    Return = 2,
+    Return = 1,
+    Negate = 2,
+    Add = 3,
+    Subtract = 4,
+    Multiply = 5,
+    Divide = 6,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {
@@ -57,6 +61,10 @@ impl VM {
                     let constant = self.pop();
                     self.push(-constant);
                 }
+                Opcode::Add => self.binary_op(|a, b| a + b),
+                Opcode::Subtract => self.binary_op(|a, b| a - b),
+                Opcode::Multiply => self.binary_op(|a, b| a * b),
+                Opcode::Divide => self.binary_op(|a, b| a / b),
                 Opcode::Return => {
                     let value = self.pop();
                     println!("{value}");
@@ -121,5 +129,11 @@ impl VM {
             Some(val) => val,
             None => panic!("Nothing to pop!"),
         }
+    }
+
+    fn binary_op<F>(&mut self, op: F) where F: Fn(f64, f64) -> f64 {
+        let b = self.pop();
+        let a = self.pop();
+        self.push(op(a, b));
     }
 }

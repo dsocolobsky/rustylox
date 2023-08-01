@@ -27,6 +27,10 @@ pub(crate) fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
     let to_ret = match maybe_opcode {
         Some(Opcode::Return) => disassemble_simple("RETURN", offset),
         Some(Opcode::Negate) => disassemble_simple("NEGATE", offset),
+        Some(Opcode::Add) => disassemble_simple("ADD", offset),
+        Some(Opcode::Subtract) => disassemble_simple("SUBTRACT", offset),
+        Some(Opcode::Multiply) => disassemble_simple("MULTIPLY", offset),
+        Some(Opcode::Divide) => disassemble_simple("DIVIDE", offset),
         Some(Opcode::Constant) => disassemble_constant("CONSTANT", chunk, offset),
         None => {
             println!("Unknown opcode {instruction}");
