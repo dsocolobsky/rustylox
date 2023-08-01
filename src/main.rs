@@ -1,7 +1,10 @@
 mod disassembler;
 mod chunk;
 mod vm;
+mod scanner;
+mod compiler;
 
+use std::io::Write;
 use vm::Opcode;
 
 extern crate num;
@@ -9,7 +12,34 @@ extern crate num;
 extern crate num_derive;
 
 
+fn repl() {
+    loop {
+        print!("> ");
+        std::io::stdout().flush().unwrap();
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let mut vm = vm::init_vm();
+        vm::interpret(&input);
+    }
+}
+
+fn read_file(path: &str) -> String {
+    std::fs::read_to_string(path).expect("Something went wrong reading the file")
+}
+
+fn run_file(path: &str) {
+    let content = read_file(path);
+    let mut vm = vm::init_vm();
+    vm::interpret(&content);
+}
+
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    match args.len() {
+        1 => repl(),
+        2 => run_file(&args[1]),
+        _ => println!("Usage: rlox [path]"),
+    }
     let mut vm = vm::init_vm();
 
     //vm.add_constant_op(1.2, 123);

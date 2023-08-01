@@ -1,4 +1,4 @@
-use crate::{chunk, disassembler};
+use crate::{chunk, disassembler, compiler};
 
 const DEBUG: bool = true;
 
@@ -42,6 +42,14 @@ pub(crate) fn init_vm() -> VM {
         stack: Vec::new(),
         ip: 0
     }
+}
+
+pub(crate) fn interpret(source: &str) -> InterpretResult {
+    let res = compiler::compile(source);
+    if !res {
+        return InterpretResult::CompileError;
+    }
+    InterpretResult::OK
 }
 
 impl VM {

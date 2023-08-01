@@ -9,5 +9,7 @@ edition = "2021"
 num = "0.4.1"
 num-derive = "0.4.0"
 num-traits = "0.2.16"
+phf = { version = "0.11.2", features = ["macros", "phf_macros"] }
+phf_macros = "0.11.2"
 strum = "0.25.0"
 strum_macros = "0.25.1"
