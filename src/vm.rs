@@ -1,6 +1,8 @@
 use std::fmt;
 use crate::{chunk, disassembler};
 
+const DEBUG: bool = true;
+
 pub(crate) enum InterpretResult {
     OK,
     CompileError,
@@ -47,8 +49,10 @@ pub(crate) fn init_vm() -> VM {
 impl VM {
     pub(crate) fn run(&mut self) -> InterpretResult {
         loop {
-            println!("ip: {0}", self.ip);
-            disassembler::disassemble_instruction(&self.chunk, self.ip);
+            if DEBUG {
+                println!("ip: {0}", self.ip);
+                disassembler::disassemble_instruction(&self.chunk, self.ip);
+            }
             let instruction = self.read_opcode();
             match instruction {
                 Opcode::Constant => {
@@ -85,10 +89,15 @@ impl VM {
         self.add_constant_idx(constant_index, line)
     }
 
-    fn read_byte(&mut self) -> u8 {
+    fn advance_ip(&mut self) {
         let new_position = (self.ip as i32 + 1) as usize;
         self.ip = new_position.min(self.chunk.code_len() - 1).max(0);
-        self.chunk.code[self.ip].clone()
+    }
+
+    fn read_byte(&mut self) -> u8 {
+        let byte = self.chunk.code[self.ip].clone();
+        self.advance_ip();
+        byte
     }
 
     fn read_opcode(&mut self) -> Opcode {
