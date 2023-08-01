@@ -1,4 +1,3 @@
-use std::fmt;
 use crate::{chunk, disassembler};
 
 const DEBUG: bool = true;
@@ -11,19 +10,12 @@ pub(crate) enum InterpretResult {
 
 #[repr(u8)]
 #[derive(FromPrimitive)]
+#[derive(strum_macros::Display)]
 #[derive(Clone, Debug)]
 pub(crate) enum Opcode {
     Constant = 0,
-    Return = 1,
-}
-
-impl fmt::Display for Opcode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Opcode::Constant => write!(f, "CONSTANT"),
-            Opcode::Return => write!(f, "RETURN"),
-        }
-    }
+    Negate = 1,
+    Return = 2,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {
@@ -60,6 +52,10 @@ impl VM {
                 Opcode::Constant => {
                     let constant = self.read_constant();
                     self.push(constant);
+                }
+                Opcode::Negate => {
+                    let constant = self.pop();
+                    self.push(-constant);
                 }
                 Opcode::Return => {
                     let value = self.pop();

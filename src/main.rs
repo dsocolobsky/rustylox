@@ -14,7 +14,8 @@ fn main() {
 
     //vm.add_constant_op(1.2, 123);
     vm.add_constant_op(3.14, 124);
-    vm.add_opcode(Opcode::Return, 124);
+    vm.add_opcode(Opcode::Negate, 125);
+    vm.add_opcode(Opcode::Return, 125);
     vm.run();
     //disassembler::disassemble_chunk(&vm.chunk, "code");
 }
