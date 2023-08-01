@@ -36,12 +36,14 @@ fn byte_to_opcode(byte: u8) -> Opcode {
 
 pub(crate) struct VM {
     pub(crate) chunk: chunk::Chunk,
+    stack: Vec<f64>,
     ip: usize
 }
 
 pub(crate) fn init_vm() -> VM {
     VM {
         chunk: chunk::init_chunk(),
+        stack: Vec::new(),
         ip: 0
     }
 }
@@ -57,10 +59,13 @@ impl VM {
             match instruction {
                 Opcode::Constant => {
                     let constant = self.read_constant();
-                    println!("{constant}");
-                    self.ip = self.ip + 1;
+                    self.push(constant);
                 }
-                Opcode::Return => return InterpretResult::OK,
+                Opcode::Return => {
+                    let value = self.pop();
+                    println!("{value}");
+                    return InterpretResult::OK;
+                },
             }
         }
     }
@@ -108,5 +113,17 @@ impl VM {
     fn read_constant(&mut self) -> f64 {
         let index = self.read_byte() as usize;
         self.chunk.constants[index].clone()
+    }
+
+    fn push(&mut self, value: f64) {
+        self.stack.push(value);
+    }
+
+    fn pop(&mut self) -> f64 {
+        let maybe_val = self.stack.pop();
+        match maybe_val {
+            Some(val) => val,
+            None => panic!("Nothing to pop!"),
+        }
     }
 }
