@@ -1,6 +1,6 @@
 use phf_macros::phf_map;
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub(crate) enum TokenType {
     // Single-character tokens.
     LeftParen, RightParen, LeftBrace, RightBrace, Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
@@ -34,15 +34,16 @@ static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "while" => TokenType::While,
 };
 
-#[derive(Debug)]
-struct Token {
+#[derive(Debug, Clone)]
+pub(crate) struct Token {
     pub(crate) token_type: TokenType,
-    start: usize,
-    length: usize,
+    pub(crate) start: usize,
+    pub(crate) length: usize,
     pub(crate) line: usize,
+    pub(crate) lexeme: String,
 }
 
-struct Scanner {
+pub(crate) struct Scanner {
     source: String,
     tokens: Vec<Token>,
     start: usize,
@@ -175,7 +176,7 @@ impl Scanner {
     fn identifier_type(&self) -> TokenType {
         let text = &self.source[self.start..self.current];
         match KEYWORDS.get(text) {
-            Some(&token_type) => token_type,
+            Some(&ref token_type) => token_type.clone(),
             None => TokenType::Identifier,
         }
     }
@@ -218,6 +219,7 @@ impl Scanner {
             start: self.start,
             length: (self.current - self.start),
             line: self.line,
+            lexeme: self.source[self.start..self.current].to_string(),
         }
     }
 
@@ -227,6 +229,7 @@ impl Scanner {
             start: 0,
             length: message.len(),
             line: self.line,
+            lexeme: message.to_string(),
         }
     }
 

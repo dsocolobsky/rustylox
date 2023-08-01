@@ -19,7 +19,7 @@ fn repl() {
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
         let mut vm = vm::init_vm();
-        vm::interpret(&input);
+        vm.interpret(&input);
     }
 }
 
@@ -30,7 +30,7 @@ fn read_file(path: &str) -> String {
 fn run_file(path: &str) {
     let content = read_file(path);
     let mut vm = vm::init_vm();
-    vm::interpret(&content);
+    vm.interpret(&content);
 }
 
 fn main() {

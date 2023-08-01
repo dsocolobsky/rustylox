@@ -44,15 +44,17 @@ pub(crate) fn init_vm() -> VM {
     }
 }
 
-pub(crate) fn interpret(source: &str) -> InterpretResult {
-    let res = compiler::compile(source);
-    if !res {
-        return InterpretResult::CompileError;
-    }
-    InterpretResult::OK
-}
-
 impl VM {
+    pub(crate) fn interpret(&mut self, source: &str) -> InterpretResult {
+        if let Some(chunk) = compiler::compile(source) {
+            self.chunk = chunk;
+            self.ip = 0;
+            self.run()
+        } else {
+            InterpretResult::CompileError
+        }
+    }
+
     pub(crate) fn run(&mut self) -> InterpretResult {
         loop {
             if DEBUG {
