@@ -10,6 +10,9 @@ pub(crate) enum Opcode {
     Subtract = 4,
     Multiply = 5,
     Divide = 6,
+    Nil = 7,
+    True = 8,
+    False = 9,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {

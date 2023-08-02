@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq, Eq)]
+use std::fmt;
+
+#[derive(Debug,PartialEq, Eq)]
 pub(crate) enum ValueType {
     Nil,
     Bool,
@@ -14,6 +16,16 @@ pub(crate) union ValueData {
 pub(crate) struct Value {
     value_type: ValueType,
     value_data: ValueData,
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.value_type {
+            ValueType::Nil => write!(f, "nil"),
+            ValueType::Bool => unsafe { write!(f, "{}", self.value_data.boolean) },
+            ValueType::Number => unsafe { write!(f, "{}", self.value_data.number) },
+        }
+    }
 }
 
 pub(crate) fn nil_val() -> Value {

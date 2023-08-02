@@ -31,6 +31,9 @@ pub(crate) fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
         Some(Opcode::Multiply) => disassemble_simple("MULTIPLY", offset),
         Some(Opcode::Divide) => disassemble_simple("DIVIDE", offset),
         Some(Opcode::Constant) => disassemble_constant("CONSTANT", chunk, offset),
+        Some(Opcode::Nil) => disassemble_simple("NIL", offset),
+        Some(Opcode::False) => disassemble_simple("FALSE", offset),
+        Some(Opcode::True) => disassemble_simple("TRUE", offset),
         None => {
             println!("Unknown opcode {instruction}");
             offset + 1

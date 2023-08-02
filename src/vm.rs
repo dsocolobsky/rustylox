@@ -1,5 +1,6 @@
 use crate::{chunk, disassembler, compiler, value, stack};
 use crate::chunk::Opcode;
+use crate::value::Value;
 
 const DEBUG: bool = true;
 
@@ -25,7 +26,7 @@ pub(crate) fn init_vm() -> VM {
 }
 
 impl VM {
-    pub(crate) fn interpret(&mut self, source: &str) -> (InterpretResult, Option<f64>) {
+    pub(crate) fn interpret(&mut self, source: &str) -> (InterpretResult, Option<Value>) {
         if let Some(chunk) = compiler::compile(source) {
             self.chunk = chunk;
             self.ip = 0;
@@ -35,7 +36,7 @@ impl VM {
         }
     }
 
-    pub(crate) fn run(&mut self) -> (InterpretResult, Option<f64>) {
+    pub(crate) fn run(&mut self) -> (InterpretResult, Option<Value>) {
         loop {
             if DEBUG {
                 println!("ip: {0}", self.ip);
@@ -50,6 +51,9 @@ impl VM {
                     self.stack.push(value::number_val(constant));
                     self.advance_ip();
                 }
+                Opcode::Nil => self.stack.push(value::nil_val()),
+                Opcode::False => self.stack.push(value::boolean_val(false)),
+                Opcode::True => self.stack.push(value::boolean_val(true)),
                 Opcode::Negate => {
                     if !self.stack.is_number(0) {
                         self.runtime_error("Operand must be a number");
@@ -63,7 +67,7 @@ impl VM {
                 Opcode::Multiply => self.binary_op(|a, b| a * b),
                 Opcode::Divide => self.binary_op(|a, b| a / b),
                 Opcode::Return => {
-                    let value = self.stack.pop_as_number();
+                    let value = self.stack.pop();
                     println!("{value}");
                     return (InterpretResult::OK, Some(value));
                 },
@@ -112,16 +116,27 @@ impl VM {
 
 #[cfg(test)]
 mod tests {
+    use crate::value;
     use crate::vm::Opcode;
 
     #[test]
-    fn test_constant() {
+    fn test_return_float() {
         let mut vm = super::init_vm();
         vm.chunk.write_constant(3.14, 123);
         vm.chunk.write_opcode(Opcode::Return, 124);
         let (status, res) = vm.run();
         assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(res.unwrap(), 3.14);
+        assert_eq!(value::as_number(&res.unwrap()), 3.14);
+    }
+
+    #[test]
+    fn test_return_boolean() {
+        let mut vm = super::init_vm();
+        vm.chunk.write_opcode(Opcode::True, 123);
+        vm.chunk.write_opcode(Opcode::Return, 124);
+        let (status, res) = vm.run();
+        assert_eq!(status, super::InterpretResult::OK);
+        assert_eq!(value::as_boolean(&res.unwrap()), true);
     }
 
 
@@ -134,6 +149,6 @@ mod tests {
         vm.chunk.write_opcode(super::Opcode::Return, 123);
         let (status, res) = vm.run();
         assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(res.unwrap(), 3.7);
+        assert_eq!(value::as_number(&res.unwrap()), 3.7);
     }
 }
