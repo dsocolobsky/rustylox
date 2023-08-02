@@ -30,14 +30,26 @@ struct ParseRule {
 fn parse_rule(token_type: &TokenType) -> ParseRule {
     use TokenType::*;
     match token_type {
-        LeftParen => ParseRule { prefix: Some(Parser::grouping), infix: None, precedence: Precedence::None },
-        Bang => ParseRule { prefix: Some(Parser::unary), infix: None, precedence: Precedence::None },
-        Minus => ParseRule { prefix: Some(Parser::unary), infix: Some(Parser::binary), precedence: Precedence::Term },
-        Plus => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Term },
-        Slash | Star => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
-        Number => ParseRule { prefix: Some(Parser::number), infix: None, precedence: Precedence::None },
-        Nil | False | True  => ParseRule { prefix: Some(Parser::literal), infix: None, precedence: Precedence::None },
-        _ => ParseRule { prefix: None, infix: None, precedence: Precedence::None }
+        LeftParen =>
+            ParseRule { prefix: Some(Parser::grouping), infix: None, precedence: Precedence::None },
+        Bang =>
+            ParseRule { prefix: Some(Parser::unary), infix: None, precedence: Precedence::None },
+        Minus =>
+            ParseRule { prefix: Some(Parser::unary), infix: Some(Parser::binary), precedence: Precedence::Term },
+        Plus =>
+            ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Term },
+        Slash | Star =>
+            ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
+        Number =>
+            ParseRule { prefix: Some(Parser::number), infix: None, precedence: Precedence::None },
+        Nil | False | True  =>
+            ParseRule { prefix: Some(Parser::literal), infix: None, precedence: Precedence::None },
+        BangEqual | EqualEqual =>
+            ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Equality },
+        Greater | GreaterEqual | Less | LessEqual =>
+            ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Comparison },
+        _ =>
+            ParseRule { prefix: None, infix: None, precedence: Precedence::None }
     }
 }
 
@@ -142,6 +154,21 @@ impl Parser {
             TokenType::Minus => self.emit_opcode(Opcode::Subtract),
             TokenType::Star => self.emit_opcode(Opcode::Multiply),
             TokenType::Slash => self.emit_opcode(Opcode::Divide),
+            TokenType::BangEqual => {
+                self.emit_opcode(Opcode::Equal);
+                self.emit_opcode(Opcode::Not);
+            },
+            TokenType::EqualEqual => self.emit_opcode(Opcode::Equal),
+            TokenType::Greater => self.emit_opcode(Opcode::Greater),
+            TokenType::GreaterEqual => {
+                self.emit_opcode(Opcode::Less);
+                self.emit_opcode(Opcode::Not);
+            },
+            TokenType::Less => self.emit_opcode(Opcode::Less),
+            TokenType::LessEqual => {
+                self.emit_opcode(Opcode::Greater);
+                self.emit_opcode(Opcode::Not);
+            },
             _ => unreachable!(),
         }
     }

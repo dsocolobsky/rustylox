@@ -28,6 +28,21 @@ impl fmt::Display for Value {
     }
 }
 
+// impl equality for Value
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        if self.value_type != other.value_type {
+            return false;
+        }
+        match self.value_type {
+            ValueType::Nil => true, // True since we already know the other is Nil
+            ValueType::Bool => as_boolean(self) == as_boolean(other),
+            ValueType::Number => as_number(self) == as_number(other),
+        }
+    }
+}
+impl Eq for Value {}
+
 pub(crate) fn nil_val() -> Value {
     Value {
         value_type: ValueType::Nil,

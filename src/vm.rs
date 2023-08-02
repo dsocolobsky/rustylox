@@ -57,7 +57,14 @@ impl VM {
                 Opcode::Not => {
                     let value = self.stack.pop();
                     self.stack.push(value::boolean_val(value::is_falsey(&value)));
-                }
+                },
+                Opcode::Equal => {
+                    let b = self.stack.pop();
+                    let a = self.stack.pop();
+                    self.stack.push(value::boolean_val(a == b));
+                },
+                Opcode::Greater => self.binary_op_boolean(|a, b| a > b),
+                Opcode::Less => self.binary_op_boolean(|a, b| a < b),
                 Opcode::Negate => {
                     if !self.stack.is_number(0) {
                         self.runtime_error("Operand must be a number");
@@ -107,6 +114,17 @@ impl VM {
         let b = self.stack.pop_as_number();
         let a = self.stack.pop_as_number();
         let result = value::number_val(op(a, b));
+        self.stack.push(result);
+    }
+
+    fn binary_op_boolean<F>(&mut self, op: F) where F: Fn(f64, f64) -> bool {
+        if !self.stack.is_number(0) || !self.stack.is_number(1) {
+            self.runtime_error("Operands must be numbers");
+            return;
+        }
+        let b = self.stack.pop_as_number();
+        let a = self.stack.pop_as_number();
+        let result = value::boolean_val(op(a, b));
         self.stack.push(result);
     }
 

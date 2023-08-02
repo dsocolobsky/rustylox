@@ -26,6 +26,9 @@ pub(crate) fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
     let to_ret = match maybe_opcode {
         Some(Opcode::Return) => disassemble_simple("RETURN", offset),
         Some(Opcode::Not) => disassemble_simple("NOT", offset),
+        Some(Opcode::Equal) => disassemble_simple("EQUAL", offset),
+        Some(Opcode::Greater) => disassemble_simple("GREATER", offset),
+        Some(Opcode::Less) => disassemble_simple("LESS", offset),
         Some(Opcode::Negate) => disassemble_simple("NEGATE", offset),
         Some(Opcode::Add) => disassemble_simple("ADD", offset),
         Some(Opcode::Subtract) => disassemble_simple("SUBTRACT", offset),
