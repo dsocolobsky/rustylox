@@ -240,7 +240,11 @@ impl Scanner {
     }
 
     fn peek(&self) -> char {
-        self.char_at(self.current)
+        if self.is_at_end() {
+            '\0'
+        } else {
+            self.char_at(self.current)
+        }
     }
 
     fn peek_next(&self) -> char {
@@ -252,5 +256,44 @@ impl Scanner {
 
     fn char_at(&self, index: usize) -> char {
         self.source.chars().nth(index).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn number() {
+        // Parse a number
+        let source = "123";
+        let mut scanner = super::init_scanner(source);
+        let token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Number);
+        assert_eq!(token.lexeme, "123");
+    }
+
+    #[test]
+    fn string() {
+        let source = "\"Hello, world!\"";
+        let mut scanner = super::init_scanner(source);
+        let token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::String);
+        assert_eq!(token.lexeme, "\"Hello, world!\"");
+    }
+
+    #[test]
+    fn keywords() {
+        let source = "and class else";
+        let mut scanner = super::init_scanner(source);
+        let mut token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::And);
+        token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Class);
+        token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Else);
+    }
+
+    #[test]
+    fn another() {
+        panic!("Make this test fail");
     }
 }

@@ -2,6 +2,7 @@ use crate::{chunk, disassembler, compiler};
 
 const DEBUG: bool = true;
 
+#[derive(PartialEq, Eq, Debug)]
 pub(crate) enum InterpretResult {
     OK,
     CompileError,
@@ -37,27 +38,30 @@ pub(crate) fn init_vm() -> VM {
 }
 
 impl VM {
-    pub(crate) fn interpret(&mut self, source: &str) -> InterpretResult {
+    pub(crate) fn interpret(&mut self, source: &str) -> (InterpretResult, Option<f64>) {
         if let Some(chunk) = compiler::compile(source) {
             self.chunk = chunk;
             self.ip = 0;
             self.run()
         } else {
-            InterpretResult::CompileError
+            (InterpretResult::CompileError, None)
         }
     }
 
-    pub(crate) fn run(&mut self) -> InterpretResult {
+    pub(crate) fn run(&mut self) -> (InterpretResult, Option<f64>) {
         loop {
             if DEBUG {
                 println!("ip: {0}", self.ip);
                 disassembler::disassemble_instruction(&self.chunk, self.ip);
             }
             let instruction = self.read_opcode();
+            self.advance_ip();
             match instruction {
                 Opcode::Constant => {
-                    let constant = self.read_constant();
+                    let constant_index = self.read_byte() as usize;
+                    let constant = self.read_constant(constant_index);
                     self.push(constant);
+                    self.advance_ip();
                 }
                 Opcode::Negate => {
                     let constant = self.pop();
@@ -70,7 +74,7 @@ impl VM {
                 Opcode::Return => {
                     let value = self.pop();
                     println!("{value}");
-                    return InterpretResult::OK;
+                    return (InterpretResult::OK, Some(value));
                 },
             }
         }
@@ -81,18 +85,18 @@ impl VM {
         self.ip = new_position.min(self.chunk.code_len() - 1).max(0);
     }
 
+    /// Reads a raw byte from the chunk's code at current IP
     fn read_byte(&mut self) -> u8 {
-        let byte = self.chunk.read_byte(self.ip);
-        self.advance_ip();
-        byte
+        self.chunk.read_byte(self.ip)
     }
 
+    /// Reads an opcode from the chunk's code at current IP
     fn read_opcode(&mut self) -> Opcode {
         self.chunk.read_opcode(self.ip)
     }
 
-    fn read_constant(&mut self) -> f64 {
-        let index = self.read_byte() as usize;
+    /// Read a constant from the chunk's constant pool given it's index
+    fn read_constant(&mut self, index: usize) -> f64 {
         self.chunk.read_constant(index)
     }
 
@@ -109,5 +113,33 @@ impl VM {
         let b = self.pop();
         let a = self.pop();
         self.push(op(a, b));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::vm::Opcode;
+
+    #[test]
+    fn test_constant() {
+        let mut vm = super::init_vm();
+        vm.chunk.write_constant(3.14, 123);
+        vm.chunk.write_opcode(Opcode::Return, 124);
+        let (status, res) = vm.run();
+        assert_eq!(status, super::InterpretResult::OK);
+        assert_eq!(res.unwrap(), 3.14);
+    }
+
+
+    #[test]
+    fn test_add() {
+        let mut vm = super::init_vm();
+        vm.chunk.write_constant(1.2, 123);
+        vm.chunk.write_constant(2.5, 123);
+        vm.chunk.write_opcode(super::Opcode::Add, 123);
+        vm.chunk.write_opcode(super::Opcode::Return, 123);
+        let (status, res) = vm.run();
+        assert_eq!(status, super::InterpretResult::OK);
+        assert_eq!(res.unwrap(), 3.7);
     }
 }
