@@ -1,20 +1,43 @@
 use crate::chunk::{Chunk, init_chunk};
+use crate::disassembler::disassemble_chunk;
 use crate::scanner;
 use crate::scanner::{Token, TokenType};
 use crate::vm::Opcode;
 
+#[repr(u8)]
+#[derive(FromPrimitive, PartialEq, PartialOrd)]
 enum Precedence {
-    None,
-    Assignment,  // =
-    Or,          // or
-    And,         // and
-    Equality,    // == !=
-    Comparison,  // < > <= >=
-    Term,        // + -
-    Factor,      // * /
-    Unary,       // ! -
-    Call,        // . ()
-    Primary
+    None = 0,
+    Assignment = 1,  // =
+    Or = 2,          // or
+    And = 3,         // and
+    Equality = 4,    // == !=
+    Comparison = 5,  // < > <= >=
+    Term = 6,        // + -
+    Factor = 7,      // * /
+    Unary = 8,       // ! -
+    Call = 9,        // . ()
+    Primary = 10,
+}
+
+/// A struct representing a rule for parsing
+/// Represents a single row in the parsing table
+struct ParseRule {
+    prefix: Option<fn(&mut Parser)>,
+    infix: Option<fn(&mut Parser)>,
+    precedence: Precedence
+}
+
+fn parse_rule(token_type: &TokenType) -> ParseRule {
+    match token_type {
+        TokenType::LeftParen => ParseRule { prefix: Some(Parser::grouping), infix: None, precedence: Precedence::None },
+        TokenType::Minus => ParseRule { prefix: Some(Parser::unary), infix: Some(Parser::binary), precedence: Precedence::Term },
+        TokenType::Plus => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Term },
+        TokenType::Slash => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
+        TokenType::Star => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
+        TokenType::Number => ParseRule { prefix: Some(Parser::number), infix: None, precedence: Precedence::None },
+        _ => ParseRule { prefix: None, infix: None, precedence: Precedence::None }
+    }
 }
 
 pub(crate) fn compile(source: &str) -> Option<Chunk> {
@@ -34,6 +57,7 @@ pub(crate) fn compile(source: &str) -> Option<Chunk> {
     if parser.had_error {
         None
     } else {
+        disassemble_chunk(&parser.chunk, "code");
         Some(parser.chunk)
     }
 }
@@ -64,13 +88,21 @@ impl Parser {
         }
     }
 
-    fn expression(&self) {
+    fn expression(&mut self) {
         // Parse the lowest possible precedence, which parses all other expressions
         self.parse_precedence(Precedence::Assignment)
     }
 
-    fn parse_precedence(&self, precedence: Precedence) {
-        todo!()
+    fn parse_precedence(&mut self, precedence: Precedence) {
+        self.advance();
+        let prefix_rule = parse_rule(&self.previous_token_type()).prefix;
+        prefix_rule.expect("Expect expression")(self);
+
+        while precedence <= parse_rule(&self.current_type()).precedence {
+            self.advance();
+            let infix_rule = parse_rule(&self.previous_token_type()).infix;
+            infix_rule.expect("Expect expression")(self);
+        }
     }
 
     fn grouping(&mut self) {
@@ -84,13 +116,30 @@ impl Parser {
     }
 
     fn unary(&mut self) {
-        let operator_type = self.previous().token_type.clone();
+        let operator_type = self.previous_token_type();
 
         // Allows to parse nested unary expressions like !!variable
         self.parse_precedence(Precedence::Unary);
 
         match operator_type {
             TokenType::Minus => self.emit_opcode(Opcode::Negate),
+            _ => unreachable!(),
+        }
+    }
+
+    fn binary(&mut self) {
+        let operator_type = self.previous_token_type();
+
+        let rule = parse_rule(&operator_type);
+        let precedence_to_parse = (rule.precedence as u8) + 1;
+        let precedence: Option<Precedence> = num::FromPrimitive::from_u8(precedence_to_parse);
+        self.parse_precedence(precedence.expect("Could not convert u8 to Precedence"));
+
+        match operator_type {
+            TokenType::Plus => self.emit_opcode(Opcode::Add),
+            TokenType::Minus => self.emit_opcode(Opcode::Subtract),
+            TokenType::Star => self.emit_opcode(Opcode::Multiply),
+            TokenType::Slash => self.emit_opcode(Opcode::Divide),
             _ => unreachable!(),
         }
     }
@@ -127,11 +176,19 @@ impl Parser {
         self.error_at_current(message);
     }
 
+    fn current_type(&self) -> TokenType {
+        self.current.as_ref().unwrap().token_type.clone()
+    }
+
     fn current_type_is(&self, token_type: TokenType) -> bool {
         match self.current.as_ref() {
             Some(token) => token.token_type == token_type,
             None => false,
         }
+    }
+
+    fn previous_token_type(&self) -> TokenType {
+        self.previous().token_type.clone()
     }
 
     fn error_at_current(&mut self, message: &str) {
