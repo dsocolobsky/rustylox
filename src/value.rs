@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum ValueType {
     Nil,
     Bool,
@@ -37,7 +37,7 @@ pub(crate) fn number_val(number: f64) -> Value {
     }
 }
 
-pub(crate) fn as_nil(value: Value) -> () {
+pub(crate) fn as_nil(value: &Value) -> () {
     match value.value_type {
         ValueType::Nil => unsafe { value.value_data.nil },
         ValueType::Bool => (),
@@ -45,7 +45,7 @@ pub(crate) fn as_nil(value: Value) -> () {
     }
 }
 
-pub(crate) fn as_boolean(value: Value) -> bool {
+pub(crate) fn as_boolean(value: &Value) -> bool {
     match value.value_type {
         ValueType::Bool => unsafe { value.value_data.boolean },
         ValueType::Nil => false,
@@ -53,7 +53,7 @@ pub(crate) fn as_boolean(value: Value) -> bool {
     }
 }
 
-pub(crate) fn as_number(value: Value) -> f64 {
+pub(crate) fn as_number(value: &Value) -> f64 {
     match value.value_type {
         ValueType::Number => unsafe { value.value_data.number },
         ValueType::Nil => 0.0,

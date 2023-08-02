@@ -1,5 +1,5 @@
-use crate::{chunk, disassembler, compiler, value};
-use crate::value::{is_number, Value};
+use crate::{chunk, disassembler, compiler, value, stack};
+use crate::chunk::Opcode;
 
 const DEBUG: bool = true;
 
@@ -10,30 +10,16 @@ pub(crate) enum InterpretResult {
     RuntimeError
 }
 
-#[repr(u8)]
-#[derive(FromPrimitive)]
-#[derive(strum_macros::Display)]
-#[derive(Clone, Debug)]
-pub(crate) enum Opcode {
-    Constant = 0,
-    Return = 1,
-    Negate = 2,
-    Add = 3,
-    Subtract = 4,
-    Multiply = 5,
-    Divide = 6,
-}
-
 pub(crate) struct VM {
     pub(crate) chunk: chunk::Chunk,
-    stack: Vec<Value>,
+    stack: stack::Stack,
     ip: usize
 }
 
 pub(crate) fn init_vm() -> VM {
     VM {
         chunk: chunk::init_chunk(),
-        stack: Vec::new(),
+        stack: stack::init_stack(),
         ip: 0
     }
 }
@@ -61,23 +47,23 @@ impl VM {
                 Opcode::Constant => {
                     let constant_index = self.read_byte() as usize;
                     let constant = self.read_constant(constant_index);
-                    self.push(value::number_val(constant));
+                    self.stack.push(value::number_val(constant));
                     self.advance_ip();
                 }
                 Opcode::Negate => {
-                    if !value::is_number(self.peek()) {
+                    if !self.stack.is_number(0) {
                         self.runtime_error("Operand must be a number");
                         return (InterpretResult::RuntimeError, None);
                     }
-                    let constant = value::as_number(self.pop());
-                    self.push(value::number_val(-constant));
+                    let constant = self.stack.pop_as_number();
+                    self.stack.push(value::number_val(-constant));
                 }
                 Opcode::Add => self.binary_op(|a, b| a + b),
                 Opcode::Subtract => self.binary_op(|a, b| a - b),
                 Opcode::Multiply => self.binary_op(|a, b| a * b),
                 Opcode::Divide => self.binary_op(|a, b| a / b),
                 Opcode::Return => {
-                    let value = value::as_number(self.pop());
+                    let value = self.stack.pop_as_number();
                     println!("{value}");
                     return (InterpretResult::OK, Some(value));
                 },
@@ -105,32 +91,15 @@ impl VM {
         self.chunk.read_constant(index)
     }
 
-    fn push(&mut self, value: Value) {
-        self.stack.push(value);
-    }
-
-    fn peek(&self) -> &Value {
-        self.peek_at(0)
-    }
-
-    fn peek_at(&self, distance: usize) -> &Value {
-        let maybe_val = self.stack.get(self.stack.len() - distance - 1);
-        maybe_val.expect("Nothing to peek!")
-    }
-
-    fn pop(&mut self) -> Value {
-        let maybe_val = self.stack.pop();
-        maybe_val.expect("Nothing to pop!")
-    }
-
     fn binary_op<F>(&mut self, op: F) where F: Fn(f64, f64) -> f64 {
-        if !is_number(self.peek_at(0)) || !is_number(self.peek_at(1)) {
+        if !self.stack.is_number(0) || !self.stack.is_number(1) {
             self.runtime_error("Operands must be numbers");
             return;
         }
-        let b = value::as_number(self.pop());
-        let a = value::as_number(self.pop());
-        self.push(value::number_val(op(a, b)));
+        let b = self.stack.pop_as_number();
+        let a = self.stack.pop_as_number();
+        let result = value::number_val(op(a, b));
+        self.stack.push(result);
     }
 
     fn runtime_error(&mut self, message: &str) {

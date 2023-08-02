@@ -1,5 +1,4 @@
-use crate::{chunk, Opcode};
-use crate::chunk::Chunk;
+use crate::chunk::{Chunk, Opcode};
 
 /// Disassemble the code section of a chunk
 pub(crate) fn disassemble_chunk(chunk: &Chunk, name: &str) {

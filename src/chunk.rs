@@ -1,4 +1,16 @@
-use crate::vm::Opcode;
+#[repr(u8)]
+#[derive(FromPrimitive)]
+#[derive(strum_macros::Display)]
+#[derive(Clone, Debug)]
+pub(crate) enum Opcode {
+    Constant = 0,
+    Return = 1,
+    Negate = 2,
+    Add = 3,
+    Subtract = 4,
+    Multiply = 5,
+    Divide = 6,
+}
 
 fn byte_to_opcode(byte: u8) -> Opcode {
     let maybe_opcode = num::FromPrimitive::from_u8(byte);

@@ -1,8 +1,7 @@
-use crate::chunk::{Chunk, init_chunk};
+use crate::chunk::{Chunk, init_chunk, Opcode};
 use crate::disassembler::disassemble_chunk;
-use crate::{scanner, value};
+use crate::{scanner};
 use crate::scanner::{Token, TokenType};
-use crate::vm::Opcode;
 
 #[repr(u8)]
 #[derive(FromPrimitive, PartialEq, PartialOrd)]

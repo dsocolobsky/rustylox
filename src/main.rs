@@ -4,9 +4,9 @@ mod vm;
 mod scanner;
 mod compiler;
 mod value;
+mod stack;
 
 use std::io::Write;
-use vm::Opcode;
 
 extern crate num;
 #[macro_use]
