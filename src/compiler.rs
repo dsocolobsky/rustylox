@@ -1,6 +1,6 @@
 use crate::chunk::{Chunk, init_chunk};
 use crate::disassembler::disassemble_chunk;
-use crate::scanner;
+use crate::{scanner, value};
 use crate::scanner::{Token, TokenType};
 use crate::vm::Opcode;
 

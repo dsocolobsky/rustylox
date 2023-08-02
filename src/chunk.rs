@@ -59,7 +59,9 @@ impl Chunk {
         byte_to_opcode(opcode)
     }
 
-
+    pub(crate) fn get_line(&self, index: usize) -> usize {
+        self.lines[index]
+    }
 
     pub(crate) fn code_len(&self) -> usize {
         self.code.len()

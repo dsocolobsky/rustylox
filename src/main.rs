@@ -3,6 +3,7 @@ mod chunk;
 mod vm;
 mod scanner;
 mod compiler;
+mod value;
 
 use std::io::Write;
 use vm::Opcode;
