@@ -25,6 +25,7 @@ pub(crate) fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
     let maybe_opcode = num::FromPrimitive::from_u8(instruction);
     let to_ret = match maybe_opcode {
         Some(Opcode::Return) => disassemble_simple("RETURN", offset),
+        Some(Opcode::Not) => disassemble_simple("NOT", offset),
         Some(Opcode::Negate) => disassemble_simple("NEGATE", offset),
         Some(Opcode::Add) => disassemble_simple("ADD", offset),
         Some(Opcode::Subtract) => disassemble_simple("SUBTRACT", offset),

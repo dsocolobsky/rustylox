@@ -54,6 +54,10 @@ impl VM {
                 Opcode::Nil => self.stack.push(value::nil_val()),
                 Opcode::False => self.stack.push(value::boolean_val(false)),
                 Opcode::True => self.stack.push(value::boolean_val(true)),
+                Opcode::Not => {
+                    let value = self.stack.pop();
+                    self.stack.push(value::boolean_val(value::is_falsey(&value)));
+                }
                 Opcode::Negate => {
                     if !self.stack.is_number(0) {
                         self.runtime_error("Operand must be a number");

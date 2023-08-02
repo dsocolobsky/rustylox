@@ -90,3 +90,11 @@ pub(crate) fn is_boolean(value: &Value) -> bool {
 pub(crate) fn is_number(value: &Value) -> bool {
     value.value_type == ValueType::Number
 }
+
+pub(crate) fn is_falsey(value: &Value) -> bool {
+    match value.value_type {
+        ValueType::Nil => true,
+        ValueType::Bool => !unsafe { value.value_data.boolean },
+        ValueType::Number => unsafe { value.value_data.number == 0.0 },
+    }
+}

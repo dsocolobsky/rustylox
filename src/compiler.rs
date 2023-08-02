@@ -31,10 +31,10 @@ fn parse_rule(token_type: &TokenType) -> ParseRule {
     use TokenType::*;
     match token_type {
         LeftParen => ParseRule { prefix: Some(Parser::grouping), infix: None, precedence: Precedence::None },
+        Bang => ParseRule { prefix: Some(Parser::unary), infix: None, precedence: Precedence::None },
         Minus => ParseRule { prefix: Some(Parser::unary), infix: Some(Parser::binary), precedence: Precedence::Term },
         Plus => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Term },
-        Slash => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
-        Star => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
+        Slash | Star => ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
         Number => ParseRule { prefix: Some(Parser::number), infix: None, precedence: Precedence::None },
         Nil | False | True  => ParseRule { prefix: Some(Parser::literal), infix: None, precedence: Precedence::None },
         _ => ParseRule { prefix: None, infix: None, precedence: Precedence::None }
@@ -123,6 +123,7 @@ impl Parser {
         self.parse_precedence(Precedence::Unary);
 
         match operator_type {
+            TokenType::Bang => self.emit_opcode(Opcode::Not),
             TokenType::Minus => self.emit_opcode(Opcode::Negate),
             _ => unreachable!(),
         }

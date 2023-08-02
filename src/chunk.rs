@@ -13,6 +13,7 @@ pub(crate) enum Opcode {
     Nil = 7,
     True = 8,
     False = 9,
+    Not = 10,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {
