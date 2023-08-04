@@ -56,7 +56,7 @@ fn disassemble_simple(name: &str, offset: usize) -> usize {
 fn disassemble_constant(name: &str, chunk: &Chunk, offset: usize) -> usize {
     let constant = chunk.code[offset + 1].clone() as usize;
     print!("{:<16} {:>4} '", name, constant);
-    let value = chunk.constants[constant];
+    let value = &chunk.constants[constant];
     println!("{value} '");
     offset + 2
 }

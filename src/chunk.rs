@@ -24,10 +24,25 @@ fn byte_to_opcode(byte: u8) -> Opcode {
     maybe_opcode.expect("Expected {byte} to be an opcode but it is not")
 }
 
+#[derive(Debug)]
+pub(crate) enum Constant {
+    Number(f64),
+    String(String),
+}
+
+impl std::fmt::Display for Constant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Constant::Number(number) => write!(f, "{}", number),
+            Constant::String(string) => write!(f, "{}", string),
+        }
+    }
+}
+
 pub(crate) struct Chunk {
     pub(crate) code: Vec<u8>,
     pub(crate) lines: Vec<usize>,
-    pub(crate) constants: Vec<f64>
+    pub(crate) constants: Vec<Constant>
 }
 
 pub(crate) fn init_chunk() -> Chunk {
@@ -51,18 +66,18 @@ impl Chunk {
     }
 
     /// Write a constant to the constant array and return it's index
-    pub(crate) fn add_constant(&mut self, value: f64) -> usize {
-        self.constants.push(value);
+    pub(crate) fn add_constant(&mut self, constant: Constant) -> usize {
+        self.constants.push(constant);
         self.constants.len() - 1
     }
 
-    pub(crate) fn read_constant(&self, index: usize) -> f64 {
-        self.constants[index]
+    pub(crate) fn read_constant(&self, index: usize) -> &Constant {
+        &self.constants[index]
     }
 
     /// Add a constant, write a CONSTANT opcode followed by the index
-    pub(crate) fn write_constant(&mut self, value: f64, line: usize) {
-        let constant_index = self.add_constant(value);
+    pub(crate) fn write_constant(&mut self, constant: Constant, line: usize) {
+        let constant_index = self.add_constant(constant);
         self.write_opcode(Opcode::Constant, line);
         self.write_byte(constant_index as u8, line);
     }

@@ -1,5 +1,5 @@
 use crate::{chunk, disassembler, compiler, value, stack};
-use crate::chunk::Opcode;
+use crate::chunk::{Constant, Opcode};
 use crate::value::Value;
 
 const DEBUG: bool = true;
@@ -48,7 +48,11 @@ impl VM {
                 Opcode::Constant => {
                     let constant_index = self.read_byte() as usize;
                     let constant = self.read_constant(constant_index);
-                    self.stack.push(value::number_val(constant));
+                    let value = match constant {
+                        Constant::Number(number) => value::number_val(*number),
+                        Constant::String(_) => unimplemented!(),
+                    };
+                    self.stack.push(value);
                     self.advance_ip();
                 }
                 Opcode::Nil => self.stack.push(value::nil_val()),
@@ -102,8 +106,8 @@ impl VM {
     }
 
     /// Read a constant from the chunk's constant pool given it's index
-    fn read_constant(&mut self, index: usize) -> f64 {
-        self.chunk.read_constant(index)
+    fn read_constant(&mut self, index: usize) -> &Constant {
+        &self.chunk.read_constant(index)
     }
 
     fn binary_op<F>(&mut self, op: F) where F: Fn(f64, f64) -> f64 {
@@ -138,13 +142,14 @@ impl VM {
 
 #[cfg(test)]
 mod tests {
+    use crate::chunk::Constant;
     use crate::value;
     use crate::vm::Opcode;
 
     #[test]
     fn test_return_float() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(3.14, 123);
+        vm.chunk.write_constant(Constant::Number(3.14), 123);
         vm.chunk.write_opcode(Opcode::Return, 124);
         let (status, res) = vm.run();
         assert_eq!(status, super::InterpretResult::OK);
@@ -165,8 +170,8 @@ mod tests {
     #[test]
     fn test_add() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(1.2, 123);
-        vm.chunk.write_constant(2.5, 123);
+        vm.chunk.write_constant(Constant::Number(1.2), 123);
+        vm.chunk.write_constant(Constant::Number(2.5), 123);
         vm.chunk.write_opcode(super::Opcode::Add, 123);
         vm.chunk.write_opcode(super::Opcode::Return, 123);
         let (status, res) = vm.run();

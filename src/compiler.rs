@@ -1,4 +1,4 @@
-use crate::chunk::{Chunk, init_chunk, Opcode};
+use crate::chunk::{Chunk, Constant, init_chunk, Opcode};
 use crate::disassembler::disassemble_chunk;
 use crate::{scanner};
 use crate::scanner::{Token, TokenType};
@@ -125,7 +125,7 @@ impl Parser {
 
     fn number(&mut self) {
         let value = self.previous().lexeme.parse::<f64>().expect("Could not parse number");
-        self.emit_constant(value);
+        self.emit_constant(Constant::Number(value));
     }
 
     fn unary(&mut self) {
@@ -182,8 +182,8 @@ impl Parser {
         }
     }
 
-    fn emit_constant(&mut self, value: f64) {
-        self.chunk.write_constant(value, self.previous().line);
+    fn emit_constant(&mut self, constant: Constant) {
+        self.chunk.write_constant(constant, self.previous().line);
     }
 
     fn emit_return(&mut self) {
@@ -198,8 +198,8 @@ impl Parser {
         self.chunk.write_opcode(opcode, self.previous().line);
     }
 
-    fn make_constant(&mut self, value: f64) -> usize {
-        self.chunk.add_constant(value)
+    fn make_constant(&mut self, constant: Constant) -> usize {
+        self.chunk.add_constant(constant)
     }
 
     fn previous(&self) -> &Token {
