@@ -49,23 +49,23 @@ impl VM {
                     let constant_index = self.read_byte() as usize;
                     let constant = self.read_constant(constant_index);
                     let value = match constant {
-                        Constant::Number(number) => value::number_val(*number),
+                        Constant::Number(number) => Value::Number(*number),
                         Constant::String(_) => unimplemented!(),
                     };
                     self.stack.push(value);
                     self.advance_ip();
                 }
-                Opcode::Nil => self.stack.push(value::nil_val()),
-                Opcode::False => self.stack.push(value::boolean_val(false)),
-                Opcode::True => self.stack.push(value::boolean_val(true)),
+                Opcode::Nil => self.stack.push(Value::Nil),
+                Opcode::False => self.stack.push(Value::Bool(false)),
+                Opcode::True => self.stack.push(Value::Bool(true)),
                 Opcode::Not => {
                     let value = self.stack.pop();
-                    self.stack.push(value::boolean_val(value::is_falsey(&value)));
+                    self.stack.push(Value::Bool(value::is_falsey(&value)));
                 },
                 Opcode::Equal => {
                     let b = self.stack.pop();
                     let a = self.stack.pop();
-                    self.stack.push(value::boolean_val(a == b));
+                    self.stack.push(Value::Bool(a == b));
                 },
                 Opcode::Greater => self.binary_op_boolean(|a, b| a > b),
                 Opcode::Less => self.binary_op_boolean(|a, b| a < b),
@@ -74,8 +74,9 @@ impl VM {
                         self.runtime_error("Operand must be a number");
                         return (InterpretResult::RuntimeError, None);
                     }
-                    let constant = self.stack.pop_as_number();
-                    self.stack.push(value::number_val(-constant));
+                    if let Value::Number(constant) = self.stack.pop() {
+                        self.stack.push(Value::Number(-constant));
+                    }
                 }
                 Opcode::Add => self.binary_op(|a, b| a + b),
                 Opcode::Subtract => self.binary_op(|a, b| a - b),
@@ -115,10 +116,9 @@ impl VM {
             self.runtime_error("Operands must be numbers");
             return;
         }
-        let b = self.stack.pop_as_number();
-        let a = self.stack.pop_as_number();
-        let result = value::number_val(op(a, b));
-        self.stack.push(result);
+        let Value::Number(b) = self.stack.pop() else { !unreachable!() };
+        let Value::Number(a) = self.stack.pop() else { !unreachable!() };
+        self.stack.push(Value::Number(op(a, b)));
     }
 
     fn binary_op_boolean<F>(&mut self, op: F) where F: Fn(f64, f64) -> bool {
@@ -126,10 +126,10 @@ impl VM {
             self.runtime_error("Operands must be numbers");
             return;
         }
-        let b = self.stack.pop_as_number();
-        let a = self.stack.pop_as_number();
-        let result = value::boolean_val(op(a, b));
-        self.stack.push(result);
+
+        let Value::Number(b) = self.stack.pop() else { !unreachable!() };;
+        let Value::Number(a) = self.stack.pop() else { !unreachable!() };;
+        self.stack.push(Value::Bool(op(a, b)));
     }
 
     fn runtime_error(&mut self, message: &str) {
@@ -143,7 +143,7 @@ impl VM {
 #[cfg(test)]
 mod tests {
     use crate::chunk::Constant;
-    use crate::value;
+    use crate::value::Value;
     use crate::vm::Opcode;
 
     #[test]
@@ -151,9 +151,9 @@ mod tests {
         let mut vm = super::init_vm();
         vm.chunk.write_constant(Constant::Number(3.14), 123);
         vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, res) = vm.run();
+        let (status, Some(value)) = vm.run() else { !unreachable!() };;
         assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(value::as_number(&res.unwrap()), 3.14);
+        assert_eq!(value, Value::Number(3.14));
     }
 
     #[test]
@@ -161,9 +161,9 @@ mod tests {
         let mut vm = super::init_vm();
         vm.chunk.write_opcode(Opcode::True, 123);
         vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, res) = vm.run();
+        let (status, Some(res)) = vm.run() else { !unreachable!() };;
         assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(value::as_boolean(&res.unwrap()), true);
+        assert_eq!(res, Value::Bool(true));
     }
 
 
@@ -174,8 +174,8 @@ mod tests {
         vm.chunk.write_constant(Constant::Number(2.5), 123);
         vm.chunk.write_opcode(super::Opcode::Add, 123);
         vm.chunk.write_opcode(super::Opcode::Return, 123);
-        let (status, res) = vm.run();
+        let (status, Some(res)) = vm.run() else { !unreachable!() };;
         assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(value::as_number(&res.unwrap()), 3.7);
+        assert_eq!(res, Value::Number(3.7));
     }
 }

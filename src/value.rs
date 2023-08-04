@@ -3,113 +3,35 @@ use std::fmt;
 #[derive(Debug,PartialEq, Eq)]
 pub(crate) enum ValueType {
     Nil,
-    Bool,
     Number,
+    Bool,
+    String,
 }
 
-pub(crate) union ValueData {
-    nil: (),
-    boolean: bool,
-    number: f64,
-}
-
-pub(crate) struct Value {
-    value_type: ValueType,
-    value_data: ValueData,
+#[derive(Debug, PartialEq)]
+pub(crate) enum Value {
+    Nil,
+    Number(f64),
+    Bool(bool),
+    String(String),
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.value_type {
-            ValueType::Nil => write!(f, "nil"),
-            ValueType::Bool => unsafe { write!(f, "{}", self.value_data.boolean) },
-            ValueType::Number => unsafe { write!(f, "{}", self.value_data.number) },
+        match self {
+            Value::Nil => write!(f, "nil"),
+            Value::Number(n)=> write!(f, "{}", n),
+            Value::Bool(b) => write!(f, "{}", b),
+            Value::String(s) => write!(f, "\"{}\"", s),
         }
     }
-}
-
-// impl equality for Value
-impl PartialEq for Value {
-    fn eq(&self, other: &Self) -> bool {
-        if self.value_type != other.value_type {
-            return false;
-        }
-        match self.value_type {
-            ValueType::Nil => true, // True since we already know the other is Nil
-            ValueType::Bool => as_boolean(self) == as_boolean(other),
-            ValueType::Number => as_number(self) == as_number(other),
-        }
-    }
-}
-impl Eq for Value {}
-
-pub(crate) fn nil_val() -> Value {
-    Value {
-        value_type: ValueType::Nil,
-        value_data: ValueData { nil: () },
-    }
-}
-
-pub(crate) fn boolean_val(boolean: bool) -> Value {
-    Value {
-        value_type: ValueType::Bool,
-        value_data: ValueData { boolean },
-    }
-}
-
-pub(crate) fn number_val(number: f64) -> Value {
-    Value {
-        value_type: ValueType::Number,
-        value_data: ValueData { number },
-    }
-}
-
-pub(crate) fn as_nil(value: &Value) -> () {
-    match value.value_type {
-        ValueType::Nil => unsafe { value.value_data.nil },
-        ValueType::Bool => (),
-        ValueType::Number => (),
-    }
-}
-
-pub(crate) fn as_boolean(value: &Value) -> bool {
-    match value.value_type {
-        ValueType::Bool => unsafe { value.value_data.boolean },
-        ValueType::Nil => false,
-        ValueType::Number => unsafe { value.value_data.number != 0.0 },
-    }
-}
-
-pub(crate) fn as_number(value: &Value) -> f64 {
-    match value.value_type {
-        ValueType::Number => unsafe { value.value_data.number },
-        ValueType::Nil => 0.0,
-        ValueType::Bool => {
-            if unsafe { value.value_data.boolean } {
-                1.0
-            } else {
-                0.0
-            }
-        }
-    }
-}
-
-pub(crate) fn is_nil(value: &Value) -> bool {
-    value.value_type == ValueType::Nil
-}
-
-pub(crate) fn is_boolean(value: &Value) -> bool {
-    value.value_type == ValueType::Bool
-}
-
-pub(crate) fn is_number(value: &Value) -> bool {
-    value.value_type == ValueType::Number
 }
 
 pub(crate) fn is_falsey(value: &Value) -> bool {
-    match value.value_type {
-        ValueType::Nil => true,
-        ValueType::Bool => !unsafe { value.value_data.boolean },
-        ValueType::Number => unsafe { value.value_data.number == 0.0 },
+    match value {
+        Value::Nil => true,
+        Value::Number(n) => *n == 0.0,
+        Value::Bool(b) => *b == false,
+        Value::String(s) => s.is_empty(),
     }
 }
