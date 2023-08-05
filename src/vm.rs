@@ -166,6 +166,16 @@ mod tests {
         assert_eq!(res, Value::Bool(true));
     }
 
+    #[test]
+    fn test_return_string() {
+        let mut vm = super::init_vm();
+        vm.chunk.write_constant(Constant::String("Hello, world!".to_string()), 123);
+        vm.chunk.write_opcode(Opcode::Return, 124);
+        let (status, Some(res)) = vm.run() else { !unreachable!() };;
+        assert_eq!(status, super::InterpretResult::OK);
+        assert_eq!(res, Value::String("Hello, world!".to_string()));
+    }
+
 
     #[test]
     fn test_add() {
