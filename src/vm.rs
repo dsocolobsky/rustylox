@@ -50,7 +50,7 @@ impl VM {
                     let constant = self.read_constant(constant_index);
                     let value = match constant {
                         Constant::Number(number) => Value::Number(*number),
-                        Constant::String(_) => unimplemented!(),
+                        Constant::String(s) => Value::String(s.clone()),
                     };
                     self.stack.push(value);
                     self.advance_ip();

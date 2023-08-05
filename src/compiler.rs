@@ -42,6 +42,8 @@ fn parse_rule(token_type: &TokenType) -> ParseRule {
             ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Factor },
         Number =>
             ParseRule { prefix: Some(Parser::number), infix: None, precedence: Precedence::None },
+        String =>
+            ParseRule { prefix: Some(Parser::string), infix: None, precedence: Precedence::None },
         Nil | False | True  =>
             ParseRule { prefix: Some(Parser::literal), infix: None, precedence: Precedence::None },
         BangEqual | EqualEqual =>
@@ -126,6 +128,11 @@ impl Parser {
     fn number(&mut self) {
         let value = self.previous().lexeme.parse::<f64>().expect("Could not parse number");
         self.emit_constant(Constant::Number(value));
+    }
+
+    fn string(&mut self) {
+        let tok = self.previous().clone();
+        self.emit_constant(Constant::String(tok.lexeme.clone()));
     }
 
     fn unary(&mut self) {
