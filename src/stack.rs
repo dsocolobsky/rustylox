@@ -1,4 +1,4 @@
-use crate::value::{Value};
+use crate::value::{Value, ValueType};
 
 pub(crate) struct Stack {
     stack: Vec<Value>,
@@ -35,14 +35,28 @@ impl Stack {
     }
 
     pub(crate) fn is_number(&self, distance: usize) -> bool {
+        self.peek_at_is_type(distance) == ValueType::Number
+    }
+
+    pub(crate) fn is_string(&self, distance: usize) -> bool {
+        self.peek_at_is_type(distance) == ValueType::String
+    }
+
+    pub(crate) fn peek_at_is_type(&self, distance: usize) -> ValueType {
         if self.stack.is_empty() {
             panic!("Expected stack to not be empty");
         }
+        if (self.stack.len() - 1) < distance {
+            panic!("Expected stack to not be empty at distance {distance}");
+        }
         match self.peek_at(distance) {
-            Value::Number(_) => true,
-            _ => false,
+            Value::Nil => ValueType::Nil,
+            Value::Number(_) => ValueType::Number,
+            Value::Bool(_) => ValueType::Bool,
+            Value::String(_) => ValueType::String,
         }
     }
+
 
     pub(crate) fn clear(&mut self) {
         self.stack.clear();

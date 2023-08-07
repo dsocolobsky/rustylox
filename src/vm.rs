@@ -78,7 +78,13 @@ impl VM {
                         self.stack.push(Value::Number(-constant));
                     }
                 }
-                Opcode::Add => self.binary_op(|a, b| a + b),
+                Opcode::Add => {
+                    if self.stack.is_string(0) && self.stack.is_string(1) {
+                        self.concatenate();
+                    } else {
+                        self.binary_op(|a, b| a + b);
+                    }
+                },
                 Opcode::Subtract => self.binary_op(|a, b| a - b),
                 Opcode::Multiply => self.binary_op(|a, b| a * b),
                 Opcode::Divide => self.binary_op(|a, b| a / b),
@@ -109,6 +115,16 @@ impl VM {
     /// Read a constant from the chunk's constant pool given it's index
     fn read_constant(&mut self, index: usize) -> &Constant {
         &self.chunk.read_constant(index)
+    }
+
+    fn concatenate(&mut self) {
+        if self.stack.is_string(0) && self.stack.is_string(1) {
+            let Value::String(s2) = self.stack.pop() else { !unreachable!() };
+            let Value::String(s1) = self.stack.pop() else { !unreachable!() };
+            let mut s = s1.clone();
+            s.push_str(&s2);
+            self.stack.push(Value::String(s));
+        }
     }
 
     fn binary_op<F>(&mut self, op: F) where F: Fn(f64, f64) -> f64 {
@@ -187,5 +203,17 @@ mod tests {
         let (status, Some(res)) = vm.run() else { !unreachable!() };;
         assert_eq!(status, super::InterpretResult::OK);
         assert_eq!(res, Value::Number(3.7));
+    }
+
+    #[test]
+    fn test_string_concat() {
+        let mut vm = super::init_vm();
+        vm.chunk.write_constant(Constant::String("Hello, ".to_string()), 123);
+        vm.chunk.write_constant(Constant::String("world!".to_string()), 123);
+        vm.chunk.write_opcode(super::Opcode::Add, 123);
+        vm.chunk.write_opcode(super::Opcode::Return, 123);
+        let (status, Some(res)) = vm.run() else { !unreachable!() };;
+        assert_eq!(status, super::InterpretResult::OK);
+        assert_eq!(res, Value::String("Hello, world!".to_string()));
     }
 }

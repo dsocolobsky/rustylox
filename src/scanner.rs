@@ -322,6 +322,34 @@ mod tests {
     }
 
     #[test]
+    fn addition() {
+        let source = "1 + 2";
+        let mut scanner = super::init_scanner(source);
+        let mut token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Number);
+        assert_eq!(token.lexeme, "1");
+        token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Plus);
+        token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Number);
+        assert_eq!(token.lexeme, "2");
+    }
+
+    #[test]
+    fn concat() {
+        let source = "\"bat\" + \"man\"";
+        let mut scanner = super::init_scanner(source);
+        let mut token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::String);
+        assert_eq!(token.lexeme, "bat");
+        token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Plus);
+        token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::String);
+        assert_eq!(token.lexeme, "man");
+    }
+
+    #[test]
     fn another() {
         panic!("Make this test fail");
     }
