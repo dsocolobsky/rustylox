@@ -209,8 +209,18 @@ impl Scanner {
             return self.error_token("Unterminated string");
         }
 
+        // Remove quotes from string
+        self.start += 1;
+        self.current -= 1;
+
         self.advance();
-        self.make_token(TokenType::String)
+        let tok = self.make_token(TokenType::String);
+
+        // Restore start and current to continue scanning correctly
+        self.start -= 1;
+        self.current += 1;
+
+        tok
     }
 
     fn make_token(&self, token_type: TokenType) -> Token {
@@ -272,12 +282,31 @@ mod tests {
     }
 
     #[test]
+    fn symbols() {
+        // Parse a number
+        let source = "+ - * /";
+        let mut scanner = super::init_scanner(source);
+        let token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Plus);
+        assert_eq!(token.lexeme, "+");
+        let token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Minus);
+        assert_eq!(token.lexeme, "-");
+        let token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Star);
+        assert_eq!(token.lexeme, "*");
+        let token = scanner.scan_token();
+        assert_eq!(token.token_type, super::TokenType::Slash);
+        assert_eq!(token.lexeme, "/");
+    }
+
+    #[test]
     fn string() {
         let source = "\"Hello, world!\"";
         let mut scanner = super::init_scanner(source);
         let token = scanner.scan_token();
         assert_eq!(token.token_type, super::TokenType::String);
-        assert_eq!(token.lexeme, "\"Hello, world!\"");
+        assert_eq!(token.lexeme, "Hello, world!");
     }
 
     #[test]
