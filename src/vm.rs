@@ -92,6 +92,10 @@ impl VM {
                     let value = self.stack.pop();
                     println!("{value}");
                 },
+                Opcode::Pop => {
+                    self.stack.pop();
+                    ()
+                }
                 Opcode::Return => {
                     let value = self.stack.pop();
                     return (InterpretResult::OK, Some(value));
