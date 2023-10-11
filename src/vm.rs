@@ -88,9 +88,12 @@ impl VM {
                 Opcode::Subtract => self.binary_op(|a, b| a - b),
                 Opcode::Multiply => self.binary_op(|a, b| a * b),
                 Opcode::Divide => self.binary_op(|a, b| a / b),
-                Opcode::Return => {
+                Opcode::Print => {
                     let value = self.stack.pop();
                     println!("{value}");
+                },
+                Opcode::Return => {
+                    let value = self.stack.pop();
                     return (InterpretResult::OK, Some(value));
                 },
             }
@@ -239,5 +242,16 @@ mod tests {
         let (status, Some(value)) = vm.run() else { !unreachable!() };;
         assert_eq!(status, super::InterpretResult::OK);
         assert_eq!(value, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_print_string() {
+        let mut vm = super::init_vm();
+        vm.chunk.write_constant(Constant::String("Banana".to_string()), 123);
+        vm.chunk.write_opcode(Opcode::Print, 124);
+        vm.chunk.write_constant(Constant::Number(0.0), 123);
+        vm.chunk.write_opcode(Opcode::Return, 124);
+        let (status, Some(value)) = vm.run() else { !unreachable!() };;
+        assert_eq!(status, super::InterpretResult::OK);
     }
 }

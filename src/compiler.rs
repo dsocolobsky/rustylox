@@ -64,8 +64,11 @@ pub(crate) fn compile(source: &str) -> Option<Chunk> {
         had_error: false,
         panic_mode: false,
     };
+
     parser.advance();
-    parser.expression();
+    while !parser.tmatch(TokenType::EOF) {
+        parser.parse_declaration();
+    }
     parser.consume(TokenType::EOF, "Expected end of expression");
     parser.emit_return();
 
@@ -103,9 +106,35 @@ impl Parser {
         }
     }
 
+    fn parse_declaration(&mut self) {
+        self.parse_statement();
+    }
+
+    fn parse_statement(&mut self) {
+        if self.current_type_is(TokenType::Print) {
+            self.parse_print_statement();
+        } else {
+            self.parse_expression_statement();
+        }
+    }
+
+    fn parse_print_statement(&mut self) {
+        self.expression();
+        self.consume(TokenType::Semicolon, "Expect ';' after value.");
+        self.emit_opcode(Opcode::Print);
+    }
+
     fn expression(&mut self) {
         // Parse the lowest possible precedence, which parses all other expressions
         self.parse_precedence(Precedence::Assignment)
+    }
+
+    // An expression statement evaluates the expression and discards the result
+    // for example a function call: myfun(arg);
+    fn parse_expression_statement(&mut self) {
+        self.expression();
+        self.consume(TokenType::Semicolon, "Expect ';' after expression statement.");
+        self.emit_opcode(Opcode::Pop);
     }
 
     fn parse_precedence(&mut self, precedence: Precedence) {
@@ -229,6 +258,16 @@ impl Parser {
         match self.current.as_ref() {
             Some(token) => token.token_type == token_type,
             None => false,
+        }
+    }
+
+    // match: this is match from the book, renamed as match is a keyword in Rust
+    fn tmatch(&mut self, token_type: TokenType) -> bool {
+        if !self.current_type_is(token_type) {
+            false
+        } else {
+            self.advance();
+            true
         }
     }
 
