@@ -24,22 +24,29 @@ pub(crate) fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
     let instruction = chunk.code[offset];
     let maybe_opcode = num::FromPrimitive::from_u8(instruction);
     let to_ret = match maybe_opcode {
-        Some(Opcode::Return) => disassemble_simple("RETURN", offset),
-        Some(Opcode::Not) => disassemble_simple("NOT", offset),
-        Some(Opcode::Equal) => disassemble_simple("EQUAL", offset),
-        Some(Opcode::Greater) => disassemble_simple("GREATER", offset),
-        Some(Opcode::Less) => disassemble_simple("LESS", offset),
-        Some(Opcode::Negate) => disassemble_simple("NEGATE", offset),
-        Some(Opcode::Add) => disassemble_simple("ADD", offset),
-        Some(Opcode::Subtract) => disassemble_simple("SUBTRACT", offset),
-        Some(Opcode::Multiply) => disassemble_simple("MULTIPLY", offset),
-        Some(Opcode::Divide) => disassemble_simple("DIVIDE", offset),
-        Some(Opcode::Constant) => disassemble_constant("CONSTANT", chunk, offset),
-        Some(Opcode::Nil) => disassemble_simple("NIL", offset),
-        Some(Opcode::False) => disassemble_simple("FALSE", offset),
-        Some(Opcode::True) => disassemble_simple("TRUE", offset),
-        Some(Opcode::Print) => disassemble_simple("PRINT", offset),
-        Some(Opcode::Pop) => disassemble_simple("POP", offset),
+        Some(op) => {
+            let disasm = |name| {
+                disassemble_simple(name, offset)
+            };
+            match op {
+                Opcode::Return => disasm("RETURN"),
+                Opcode::Not => disasm("NOT"),
+                Opcode::Equal => disasm("EQUAL"),
+                Opcode::Greater => disasm("GREATER"),
+                Opcode::Less => disasm("LESS"),
+                Opcode::Negate => disasm("NEGATE"),
+                Opcode::Add => disasm("ADD"),
+                Opcode::Subtract => disasm("SUBTRACT"),
+                Opcode::Multiply => disasm("MULTIPLY"),
+                Opcode::Divide => disasm("DIVIDE"),
+                Opcode::Constant => disassemble_constant("CONSTANT", chunk, offset),
+                Opcode::Nil => disasm("NIL"),
+                Opcode::False => disasm("FALSE"),
+                Opcode::True => disasm("TRUE"),
+                Opcode::Print => disasm("PRINT"),
+                Opcode::Pop => disasm("POP"),
+            }
+        }
         None => {
             println!("Unknown opcode {instruction}");
             offset + 1

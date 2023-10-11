@@ -167,95 +167,81 @@ impl VM {
 mod tests {
     use crate::chunk::Constant;
     use crate::value::Value;
+    use crate::utils::utils::*;
     use crate::vm::Opcode;
 
     #[test]
     fn test_return_float() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(Constant::Number(3.14), 123);
-        vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, Some(value)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(value, Value::Number(3.14));
+        write_constant!(vm, 3.14);
+        write_return!(vm);
+        run_and_expect!(vm, Value::Number(3.14));
     }
 
     #[test]
     fn test_float_equality() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(Constant::Number(3.14), 123);
-        vm.chunk.write_constant(Constant::Number(3.14), 123);
+        write_constant!(vm, 3.14);
+        write_constant!(vm, 3.14);
         vm.chunk.write_opcode(Opcode::Equal, 124);
-        vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, Some(value)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(value, Value::Bool(true));
+        write_return!(vm);
+        run_and_expect!(vm, Value::Bool(true));
     }
 
     #[test]
     fn test_return_boolean() {
         let mut vm = super::init_vm();
         vm.chunk.write_opcode(Opcode::True, 123);
-        vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, Some(res)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(res, Value::Bool(true));
+        write_return!(vm);
+        run_and_expect!(vm, Value::Bool(true));
     }
 
     #[test]
     fn test_return_string() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(Constant::String("Hello, world!".to_string()), 123);
-        vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, Some(res)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(res, Value::String("Hello, world!".to_string()));
+        write_string!(vm, "Hello, world!");
+        write_return!(vm);
+        run_and_expect_str!(vm, "Hello, world!");
     }
 
 
     #[test]
     fn test_add() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(Constant::Number(1.2), 123);
-        vm.chunk.write_constant(Constant::Number(2.5), 123);
+        write_constant!(vm, 1.2);
+        write_constant!(vm, 2.5);
         vm.chunk.write_opcode(super::Opcode::Add, 123);
-        vm.chunk.write_opcode(super::Opcode::Return, 123);
-        let (status, Some(res)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(res, Value::Number(3.7));
+        write_return!(vm);
+        run_and_expect!(vm, Value::Number(3.7));
     }
 
     #[test]
     fn test_string_concat() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(Constant::String("Hello, ".to_string()), 123);
-        vm.chunk.write_constant(Constant::String("world!".to_string()), 123);
+        write_string!(vm, "Hello, ");
+        write_string!(vm, "world!");
         vm.chunk.write_opcode(super::Opcode::Add, 123);
-        vm.chunk.write_opcode(super::Opcode::Return, 123);
-        let (status, Some(res)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(res, Value::String("Hello, world!".to_string()));
+        write_return!(vm);
+        run_and_expect_str!(vm, "Hello, world!");
     }
 
     #[test]
     fn test_string_equality() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(Constant::String("Banana".to_string()), 123);
-        vm.chunk.write_constant(Constant::String("Banana".to_string()), 123);
+        write_string!(vm, "Banana");
+        write_string!(vm, "Banana");
         vm.chunk.write_opcode(Opcode::Equal, 124);
-        vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, Some(value)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
-        assert_eq!(value, Value::Bool(true));
+        write_return!(vm);
+        run_and_expect!(vm, Value::Bool(true));
     }
 
     #[test]
     fn test_print_string() {
         let mut vm = super::init_vm();
-        vm.chunk.write_constant(Constant::String("Banana".to_string()), 123);
+        write_string!(vm, "Banana");
         vm.chunk.write_opcode(Opcode::Print, 124);
-        vm.chunk.write_constant(Constant::Number(0.0), 123);
-        vm.chunk.write_opcode(Opcode::Return, 124);
-        let (status, Some(value)) = vm.run() else { !unreachable!() };;
-        assert_eq!(status, super::InterpretResult::OK);
+        write_constant!(vm, 0.0);
+        write_return!(vm);
+        run_and_expect!(vm, Value::Number(0.0));
     }
 }

@@ -5,6 +5,7 @@ mod scanner;
 mod compiler;
 mod value;
 mod stack;
+mod utils;
 
 use std::io::Write;
 
