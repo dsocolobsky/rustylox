@@ -105,7 +105,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Expected stack to not be empty")]
     fn test_stack_peek_empty() {
-        let mut stack = init_stack();
+        let stack = init_stack();
         stack.peek();
     }
 
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Expected stack to not be empty")]
     fn test_stack_is_number_empty_stack() {
-        let mut stack = init_stack();
+        let stack = init_stack();
         assert!(stack.is_number(0));
     }
 

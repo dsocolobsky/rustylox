@@ -288,7 +288,7 @@ impl Parser {
         if self.panic_mode {
             return;
         }
-        eprintln!("[line {0}] Error", token.line);
+        eprintln!("[line {0}] Error {1}", token.line, message);
 
         match token.token_type {
             TokenType::EOF => eprint!(" at end"),
