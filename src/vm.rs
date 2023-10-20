@@ -126,33 +126,30 @@ impl VM {
 
     fn concatenate(&mut self) {
         if self.stack.is_string(0) && self.stack.is_string(1) {
-            let Value::String(s2) = self.stack.pop() else { !unreachable!() };
-            let Value::String(s1) = self.stack.pop() else { !unreachable!() };
-            let mut s = s1.clone();
-            s.push_str(&s2);
-            self.stack.push(Value::String(s));
+            if let (Value::String(s2), Value::String(s1)) = (self.stack.pop(), self.stack.pop()) {
+                let mut s = s1.clone();
+                s.push_str(&s2);
+                self.stack.push(Value::String(s));
+            } else {
+                panic!("Expected to concatenate strings");
+            }
         }
     }
 
     fn binary_op<F>(&mut self, op: F) where F: Fn(f64, f64) -> f64 {
-        if !self.stack.is_number(0) || !self.stack.is_number(1) {
-            self.runtime_error("Operands must be numbers");
-            return;
+        if let (Value::Number(b), Value::Number(a)) = (self.stack.pop(), self.stack.pop()) {
+            self.stack.push(Value::Number(op(a, b)));
+        } else {
+            panic!("Operands must be numbers");
         }
-        let Value::Number(b) = self.stack.pop() else { !unreachable!() };
-        let Value::Number(a) = self.stack.pop() else { !unreachable!() };
-        self.stack.push(Value::Number(op(a, b)));
     }
 
     fn binary_op_boolean<F>(&mut self, op: F) where F: Fn(f64, f64) -> bool {
-        if !self.stack.is_number(0) || !self.stack.is_number(1) {
-            self.runtime_error("Operands must be numbers");
-            return;
+        if let (Value::Number(b), Value::Number(a)) = (self.stack.pop(), self.stack.pop()) {
+            self.stack.push(Value::Bool(op(a, b)));
+        } else {
+            panic!("Operands must be numbers");
         }
-
-        let Value::Number(b) = self.stack.pop() else { !unreachable!() };;
-        let Value::Number(a) = self.stack.pop() else { !unreachable!() };;
-        self.stack.push(Value::Bool(op(a, b)));
     }
 
     fn runtime_error(&mut self, message: &str) {

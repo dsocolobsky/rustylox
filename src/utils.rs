@@ -1,4 +1,3 @@
-#[macro_export]
 pub mod utils {
     macro_rules! write_constant {
     ($vm:expr, $value:expr) => {
@@ -20,7 +19,7 @@ pub mod utils {
 
     macro_rules! run_and_expect {
     ($vm:expr, $expected:expr) => {
-        let (status, Some(value)) = $vm.run() else { !unreachable!() };;
+        let (status, Some(value)) = $vm.run() else { panic!("failed to execute vm") };
         assert_eq!(status, super::InterpretResult::OK);
         assert_eq!(value, $expected);
     };
@@ -28,7 +27,7 @@ pub mod utils {
 
     macro_rules! run_and_expect_str {
     ($vm:expr, $expected:expr) => {
-        let (status, Some(value)) = $vm.run() else { !unreachable!() };;
+        let (status, Some(value)) = $vm.run() else { panic!("failed to execute vm") };
         assert_eq!(status, super::InterpretResult::OK);
         assert_eq!(value, Value::String($expected.to_string()));
     };

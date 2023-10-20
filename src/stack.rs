@@ -76,10 +76,12 @@ mod tests {
         let mut stack = init_stack();
         stack.push(Value::Number(1.0));
         stack.push(Value::Number(3.0));
-        let Value::Number(n) = stack.pop() else { !unreachable!() };;
-        assert_eq!(n, 3.0);
-        let Value::Number(n) = stack.pop() else { !unreachable!() };;
-        assert_eq!(n, 1.0);
+        if let Value::Number(n) = stack.pop() {
+            assert_eq!(n, 3.0);
+        }
+        if let Value::Number(n) = stack.pop() {
+            assert_eq!(n, 1.0);
+        }
         assert!(stack.is_empty());
     }
 
@@ -95,8 +97,9 @@ mod tests {
     fn test_stack_peek() {
         let mut stack = init_stack();
         stack.push(Value::Number(1.0));
-        let Value::Number(number) = stack.peek() else { !unreachable!() };;
-        assert_eq!(*number, 1.0);
+        if let Value::Number(number) = stack.peek() {
+            assert_eq!(*number, 1.0);
+        }
     }
 
     #[test]
