@@ -108,6 +108,10 @@ impl Parser {
 
     fn parse_declaration(&mut self) {
         self.parse_statement();
+
+        if self.panic_mode {
+            self.synchronize();
+        }
     }
 
     fn parse_statement(&mut self) {
@@ -295,5 +299,19 @@ impl Parser {
             TokenType::Error => (),
             _ => eprint!(" at {0}",  &token.lexeme),
         }
+    }
+
+    fn synchronize(&mut self) {
+        self.panic_mode = false;
+
+        while !self.current_type_is(TokenType::EOF) {
+            if self.previous_token_type() == TokenType::Semicolon { return; }
+            match self.current_type() {
+                TokenType::Class | TokenType::Fun | TokenType::Var | TokenType::For | TokenType::If
+                 | TokenType::While | TokenType::Print | TokenType::Return => { return; },
+                _ => {},
+            }
+        }
+        self.advance();
     }
 }
