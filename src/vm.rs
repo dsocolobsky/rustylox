@@ -265,12 +265,4 @@ mod tests {
         write_return!(vm);
         run_and_expect!(vm, Value::Number(0.0));
     }
-
-    #[test]
-    fn test_globals() {
-        let mut vm = super::init_vm();
-        let constant_idx = vm.chunk.add_constant(Constant::String("testvar".to_string()));
-        vm.chunk.write_opcode(Opcode::DefineGlobal, 1);
-        //vm.chunk.write_byte(constant_idx);
-    }
 }

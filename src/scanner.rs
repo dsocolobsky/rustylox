@@ -35,6 +35,7 @@ static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 };
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct Token {
     pub(crate) token_type: TokenType,
     pub(crate) start: usize,
@@ -45,7 +46,6 @@ pub(crate) struct Token {
 
 pub(crate) struct Scanner {
     source: String,
-    tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
@@ -54,7 +54,6 @@ pub(crate) struct Scanner {
 pub(crate) fn init_scanner(source: &str) -> Scanner {
     Scanner {
         source: source.to_string(),
-        tokens: Vec::new(),
         start: 0,
         current: 0,
         line: 1,

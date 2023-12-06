@@ -71,11 +71,3 @@ fn disassemble_constant(name: &str, chunk: &Chunk, offset: usize) -> usize {
     println!("{value}'");
     offset + 2
 }
-
-pub(crate) fn trace_stack(stack: &Vec<f64>) {
-    print!("          ");
-    for slot in stack {
-        print!("[ {slot} ]");
-    }
-    print!("\n");
-}
