@@ -19,6 +19,7 @@ pub(crate) enum Opcode {
     Less = 13,
     Print = 14,
     Pop = 15,
+    DefineGlobal = 16,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {

@@ -107,11 +107,44 @@ impl Parser {
     }
 
     fn parse_declaration(&mut self) {
-        self.parse_statement();
+        if self.tmatch(TokenType::Var) {
+            self.parse_variable_declaration();
+        } else {
+            self.parse_statement();
+        }
 
         if self.panic_mode {
             self.synchronize();
         }
+    }
+
+    fn parse_variable_declaration(&mut self) {
+        let global = self.parse_variable_name();
+
+        if self.tmatch(TokenType::Equal) {
+            self.parse_expression_statement();
+        } else {
+            self.emit_opcode(Opcode::Nil);
+        }
+
+        self.consume(TokenType::Semicolon,
+                     "Expected ; after variable declaration");
+
+        self.define_variable(global);
+    }
+
+    fn parse_variable_name(&mut self) -> usize {
+        self.consume(TokenType::Identifier, "Expected variable name");
+        if let Some(ident_token) = self.previous.clone() {
+            self.make_constant(Constant::String(ident_token.lexeme))
+        } else {
+            panic!("Expected previous to be an identifier")
+        }
+    }
+
+    fn define_variable(&mut self, global_index: usize) {
+        self.emit_opcode(Opcode::DefineGlobal);
+        self.emit_byte(global_index as u8);
     }
 
     fn parse_statement(&mut self) {

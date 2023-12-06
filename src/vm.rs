@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::{chunk, disassembler, compiler, value, stack};
 use crate::chunk::{Constant, Opcode};
 use crate::value::Value;
@@ -14,14 +15,16 @@ pub(crate) enum InterpretResult {
 pub(crate) struct VM {
     pub(crate) chunk: chunk::Chunk,
     stack: stack::Stack,
-    ip: usize
+    ip: usize,
+    globals: HashMap<String, Value>,
 }
 
 pub(crate) fn init_vm() -> VM {
     VM {
         chunk: chunk::init_chunk(),
         stack: stack::init_stack(),
-        ip: 0
+        ip: 0,
+        globals: HashMap::new(),
     }
 }
 
@@ -100,6 +103,15 @@ impl VM {
                     let value = self.stack.pop();
                     return (InterpretResult::OK, Some(value));
                 },
+                Opcode::DefineGlobal => {
+                    let index = self.read_byte() as usize;
+                    if let Constant::String(name) = self.read_constant(index) {
+                        let value = self.stack.peek();
+                        self.globals.insert(name.clone(), value.clone());
+                    } else {
+                        self.runtime_error("Expected global ident to be a string");
+                    }
+                }
             }
         }
     }
