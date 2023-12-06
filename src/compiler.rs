@@ -360,3 +360,58 @@ impl Parser {
         self.advance();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::chunk::{Constant, Opcode};
+    use crate::compiler::compile;
+
+    // Translates between a vector of Opcode and the u8 representation
+    macro_rules! opcodes {
+        ($($opcode:expr),*) => {
+            vec![$($opcode as u8),*]
+        };
+    }
+
+    #[test]
+    fn return_a_number() {
+        let Some(chunk) = compile("return 4;") else { panic!() };
+        assert_eq!(chunk.code, opcodes![Opcode::Constant, 0, Opcode::Return]);
+    }
+
+    #[test]
+    fn return_a_string() {
+        let Some(chunk) = compile("return \"hello\";") else { panic!() };
+        assert_eq!(chunk.code, opcodes![Opcode::Constant, 0, Opcode::Return]);
+        assert_eq!(chunk.constants[0], Constant::String("hello".to_string()));
+    }
+
+    #[test]
+    fn perform_math_operations() {
+        let Some(chunk) = compile("return 3 + 4 * 5;") else { panic!() };
+        assert_eq!(chunk.code, opcodes![
+            Opcode::Constant, 0,
+            Opcode::Constant, 1,
+            Opcode::Constant, 2,
+            Opcode::Multiply,
+            Opcode::Add,
+            Opcode::Return
+        ]);
+        assert_eq!(chunk.constants[0], Constant::Number(3.0));
+        assert_eq!(chunk.constants[1], Constant::Number(4.0));
+        assert_eq!(chunk.constants[2], Constant::Number(5.0));
+    }
+
+    #[test]
+    fn equality() {
+        let Some(chunk) = compile("return 1 == 2;") else { panic!() };
+        assert_eq!(chunk.code, opcodes![
+            Opcode::Constant, 0,
+            Opcode::Constant, 1,
+            Opcode::Equal,
+            Opcode::Return
+        ]);
+        assert_eq!(chunk.constants[0], Constant::Number(1.0));
+        assert_eq!(chunk.constants[1], Constant::Number(2.0));
+    }
+}
