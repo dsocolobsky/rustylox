@@ -50,6 +50,8 @@ fn parse_rule(token_type: &TokenType) -> ParseRule {
             ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Equality },
         Greater | GreaterEqual | Less | LessEqual =>
             ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Comparison },
+        Identifier =>
+            ParseRule { prefix: Some(Parser::variable), infix: None, precedence: Precedence::None },
         _ =>
             ParseRule { prefix: None, infix: None, precedence: Precedence::None }
     }
@@ -121,7 +123,7 @@ impl Parser {
         let global = self.parse_variable_name();
 
         if self.tmatch(TokenType::Equal) {
-            self.parse_expression_statement();
+            self.expression();
         } else {
             self.emit_opcode(Opcode::Nil);
         }
@@ -139,6 +141,19 @@ impl Parser {
         } else {
             panic!("Expected previous to be an identifier")
         }
+    }
+
+    fn variable(&mut self) {
+        if let Some(name) = self.previous.clone() {
+            self.named_variable(name);
+        } else {
+            panic!("Expected previous to be a token")
+        }
+    }
+
+    fn named_variable(&mut self, name: Token) {
+        let index = self.chunk.write_identifier_constant(name);
+        self.chunk.write_get_global(index, self.previous().line);
     }
 
     fn define_variable(&mut self, global_index: usize) {
@@ -188,7 +203,7 @@ impl Parser {
     fn parse_precedence(&mut self, precedence: Precedence) {
         self.advance();
         let prefix_rule = parse_rule(&self.previous_token_type()).prefix;
-        prefix_rule.expect("Expect expression")(self);
+        prefix_rule.expect("Expected expression")(self);
 
         while precedence <= parse_rule(&self.current_type()).precedence {
             self.advance();
@@ -413,5 +428,33 @@ mod tests {
         ]);
         assert_eq!(chunk.constants[0], Constant::Number(1.0));
         assert_eq!(chunk.constants[1], Constant::Number(2.0));
+    }
+
+    #[test]
+    fn global_variables() {
+        let Some(chunk) = compile("var myvar = 4;\nreturn myvar;") else { panic!() };
+        assert_eq!(chunk.constants[0], Constant::String("myvar".to_string()));
+        assert_eq!(chunk.constants[1], Constant::Number(4.0));
+        assert_eq!(chunk.code, opcodes![
+            Opcode::Constant, 1, // Not 0 because we have "myvar" there
+            Opcode::DefineGlobal, 0,
+            Opcode::GetGlobal, 2, // Not sure why the 2 here but clox does the same
+            Opcode::Return
+        ]);
+    }
+
+    #[test]
+    fn multiply_global_variables() {
+        let Some(chunk) = compile("var a = 3;\nvar b = 4;return a*b;") else { panic!() };
+        assert_eq!(chunk.constants[0], Constant::String("myvar".to_string()));
+        assert_eq!(chunk.constants[1], Constant::Number(4.0));
+        assert_eq!(chunk.code, opcodes![
+            Opcode::Constant, 1,
+            Opcode::DefineGlobal, 0,
+            Opcode::Constant, 1,
+            Opcode::DefineGlobal, 0,
+            Opcode::GetGlobal, 2, // Not sure why the 2 here but clox does the same
+            Opcode::Return
+        ]);
     }
 }

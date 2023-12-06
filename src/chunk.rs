@@ -1,7 +1,9 @@
+use crate::scanner::Token;
+
 #[repr(u8)]
 #[derive(FromPrimitive)]
 #[derive(strum_macros::Display)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Opcode {
     Constant = 0,
     Return = 1,
@@ -20,6 +22,7 @@ pub(crate) enum Opcode {
     Print = 14,
     Pop = 15,
     DefineGlobal = 16,
+    GetGlobal = 17,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {
@@ -27,7 +30,7 @@ fn byte_to_opcode(byte: u8) -> Opcode {
     maybe_opcode.expect("Expected {byte} to be an opcode but it is not")
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum Constant {
     Number(f64),
     String(String),
@@ -83,6 +86,18 @@ impl Chunk {
         let constant_index = self.add_constant(constant);
         self.write_opcode(Opcode::Constant, line);
         self.write_byte(constant_index as u8, line);
+    }
+
+    pub(crate) fn write_get_global(&mut self, index: usize, line: usize) {
+        self.write_opcode(Opcode::GetGlobal, line);
+        self.write_byte(index as u8, line);
+    }
+
+    /// Write a variable's name as constant to the chunk's constant table.
+    // Globals are looked up by name during runtime and the name is too big
+    // to fit in the stack so we ought to save it here.
+    pub(crate) fn write_identifier_constant(&mut self, ident: Token) -> usize {
+        self.add_constant(Constant::String(ident.lexeme))
     }
 
     /// Reads a byte from the code chunk given an index

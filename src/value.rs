@@ -8,7 +8,7 @@ pub(crate) enum ValueType {
     String,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum Value {
     Nil,
     Number(f64),

@@ -109,6 +109,18 @@ impl VM {
                         let value = self.stack.peek();
                         self.globals.insert(name.clone(), value.clone());
                     } else {
+                        self.runtime_error("Expected global ident in definition to be a string");
+                    }
+                }
+                Opcode::GetGlobal => {
+                    let index = self.read_byte() as usize;
+                    if let Constant::String(name) = self.read_constant(index) {
+                        if let Some(value) = self.globals.get(name) {
+                            self.stack.push(value.clone());
+                        } else {
+                            self.runtime_error("Undefined variable");
+                        }
+                    } else {
                         self.runtime_error("Expected global ident to be a string");
                     }
                 }
@@ -132,7 +144,7 @@ impl VM {
     }
 
     /// Read a constant from the chunk's constant pool given it's index
-    fn read_constant(&mut self, index: usize) -> &Constant {
+    fn read_constant(&self, index: usize) -> &Constant {
         &self.chunk.read_constant(index)
     }
 
@@ -252,5 +264,13 @@ mod tests {
         write_constant!(vm, 0.0);
         write_return!(vm);
         run_and_expect!(vm, Value::Number(0.0));
+    }
+
+    #[test]
+    fn test_globals() {
+        let mut vm = super::init_vm();
+        let constant_idx = vm.chunk.add_constant(Constant::String("testvar".to_string()));
+        vm.chunk.write_opcode(Opcode::DefineGlobal, 1);
+        //vm.chunk.write_byte(constant_idx);
     }
 }
