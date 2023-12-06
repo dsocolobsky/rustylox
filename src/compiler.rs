@@ -70,7 +70,6 @@ pub(crate) fn compile(source: &str) -> Option<Chunk> {
         parser.parse_declaration();
     }
     parser.consume(TokenType::EOF, "Expected end of expression");
-    parser.emit_return();
 
     if parser.had_error {
         None
@@ -148,8 +147,10 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) {
-        if self.current_type_is(TokenType::Print) {
+        if self.tmatch(TokenType::Print) {
             self.parse_print_statement();
+        } else if self.tmatch(TokenType::Return) {
+            self.parse_return_statement();
         } else {
             self.parse_expression_statement();
         }
@@ -159,6 +160,16 @@ impl Parser {
         self.expression();
         self.consume(TokenType::Semicolon, "Expect ';' after value.");
         self.emit_opcode(Opcode::Print);
+    }
+
+    fn parse_return_statement(&mut self) {
+        if self.tmatch(TokenType::Semicolon) {
+            self.emit_return();
+        } else {
+            self.expression();
+            self.consume(TokenType::Semicolon, "Expect ';' after return value.");
+            self.emit_opcode(Opcode::Return);
+        }
     }
 
     fn expression(&mut self) {
@@ -299,6 +310,7 @@ impl Parser {
     }
 
     // match: this is match from the book, renamed as match is a keyword in Rust
+    // TODO rename to something better since this also advances, or check if we can change
     fn tmatch(&mut self, token_type: TokenType) -> bool {
         if !self.current_type_is(token_type) {
             false
