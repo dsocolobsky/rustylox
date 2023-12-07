@@ -462,14 +462,18 @@ mod tests {
     #[test]
     fn multiply_global_variables() {
         let Some(chunk) = compile("var a = 3;\nvar b = 4;return a*b;") else { panic!() };
-        assert_eq!(chunk.constants[0], Constant::String("myvar".to_string()));
-        assert_eq!(chunk.constants[1], Constant::Number(4.0));
+        assert_eq!(chunk.constants[0], Constant::String("a".to_string()));
+        assert_eq!(chunk.constants[1], Constant::Number(3.0));
+        assert_eq!(chunk.constants[2], Constant::String("b".to_string()));
+        assert_eq!(chunk.constants[3], Constant::Number(4.0));
         assert_eq!(chunk.code, opcodes![
-            Opcode::Constant, 1,
-            Opcode::DefineGlobal, 0,
-            Opcode::Constant, 1,
-            Opcode::DefineGlobal, 0,
-            Opcode::GetGlobal, 2, // Not sure why the 2 here but clox does the same
+            Opcode::Constant, 1, // Since in [0] we have "a"
+            Opcode::DefineGlobal, 0, // Define global value for "a"
+            Opcode::Constant, 3, // Since in [1] we have 3.0 and in [2] we have "b"
+            Opcode::DefineGlobal, 2, // Define global value for "b"
+            Opcode::GetGlobal, 4,
+            Opcode::GetGlobal, 5,
+            Opcode::Multiply,
             Opcode::Return
         ]);
     }

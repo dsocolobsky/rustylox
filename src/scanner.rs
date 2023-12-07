@@ -347,9 +347,4 @@ mod tests {
         assert_eq!(token.token_type, super::TokenType::String);
         assert_eq!(token.lexeme, "man");
     }
-
-    #[test]
-    fn another() {
-        panic!("Make this test fail");
-    }
 }
