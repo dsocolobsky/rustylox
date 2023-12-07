@@ -23,6 +23,7 @@ pub(crate) enum Opcode {
     Pop = 15,
     DefineGlobal = 16,
     GetGlobal = 17,
+    SetGlobal = 18,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {
@@ -82,10 +83,11 @@ impl Chunk {
     }
 
     /// Add a constant, write a CONSTANT opcode followed by the index
-    pub(crate) fn write_constant(&mut self, constant: Constant, line: usize) {
+    pub(crate) fn write_constant(&mut self, constant: Constant, line: usize) -> usize {
         let constant_index = self.add_constant(constant);
         self.write_opcode(Opcode::Constant, line);
         self.write_byte(constant_index as u8, line);
+        constant_index
     }
 
     pub(crate) fn write_get_global(&mut self, index: usize, line: usize) {

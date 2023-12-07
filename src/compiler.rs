@@ -22,7 +22,7 @@ enum Precedence {
 /// A struct representing a rule for parsing
 /// Represents a single row in the parsing table
 struct ParseRule {
-    prefix: Option<fn(&mut Parser)>,
+    prefix: Option<fn(&mut Parser, bool)>,
     infix: Option<fn(&mut Parser)>,
     precedence: Precedence
 }
@@ -143,17 +143,25 @@ impl Parser {
         }
     }
 
-    fn variable(&mut self) {
+    fn variable(&mut self, can_assign: bool) {
         if let Some(name) = self.previous.clone() {
-            self.named_variable(name);
+            self.named_variable(name, can_assign);
         } else {
             panic!("Expected previous to be a token")
         }
     }
 
-    fn named_variable(&mut self, name: Token) {
+    fn named_variable(&mut self, name: Token, can_assign: bool) {
         let index = self.chunk.write_identifier_constant(name);
-        self.chunk.write_get_global(index, self.previous().line);
+
+        if can_assign && self.tmatch(TokenType::Equal) {
+            self.expression();
+            self.emit_opcode(Opcode::SetGlobal);
+        } else {
+            self.emit_opcode(Opcode::GetGlobal);
+        }
+
+        self.emit_byte(index as u8);
     }
 
     fn define_variable(&mut self, global_index: usize) {
@@ -202,32 +210,40 @@ impl Parser {
 
     fn parse_precedence(&mut self, precedence: Precedence) {
         self.advance();
+
+        // This will determine if the expression can be assigned to
+        let can_assign = precedence <= Precedence::Assignment;
+
         let prefix_rule = parse_rule(&self.previous_token_type()).prefix;
-        prefix_rule.expect("Expected expression")(self);
+        prefix_rule.expect("Expected expression")(self, can_assign);
 
         while precedence <= parse_rule(&self.current_type()).precedence {
             self.advance();
             let infix_rule = parse_rule(&self.previous_token_type()).infix;
             infix_rule.expect("Expect expression")(self);
         }
+
+        if can_assign && self.tmatch(TokenType::Equal) {
+            self.error_at_current("Invalid assignment target");
+        }
     }
 
-    fn grouping(&mut self) {
+    fn grouping(&mut self, _can_assign: bool) {
         self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after expression");
     }
 
-    fn number(&mut self) {
+    fn number(&mut self, _can_assign: bool) {
         let value = self.previous().lexeme.parse::<f64>().expect("Could not parse number");
         self.emit_constant(Constant::Number(value));
     }
 
-    fn string(&mut self) {
+    fn string(&mut self, _can_assign: bool) {
         let tok = self.previous().clone();
         self.emit_constant(Constant::String(tok.lexeme.clone()));
     }
 
-    fn unary(&mut self) {
+    fn unary(&mut self, _can_assign: bool) {
         let operator_type = self.previous_token_type();
 
         // Allows to parse nested unary expressions like !!variable
@@ -272,7 +288,7 @@ impl Parser {
         }
     }
 
-    fn literal(&mut self) {
+    fn literal(&mut self, _can_assign: bool) {
         match self.previous_token_type() {
             TokenType::Nil  => self.emit_opcode(Opcode::Nil),
             TokenType::False => self.emit_opcode(Opcode::False),
@@ -454,6 +470,25 @@ mod tests {
             Opcode::Constant, 1,
             Opcode::DefineGlobal, 0,
             Opcode::GetGlobal, 2, // Not sure why the 2 here but clox does the same
+            Opcode::Return
+        ]);
+    }
+
+    // TODO: this is the same as in clox but I have to figure out better why the indexes are like this
+    #[test]
+    fn set_global_variable() {
+        let Some(chunk) = compile("var a = 3;\na = 4;\nreturn a;") else { panic!() };
+        assert_eq!(chunk.constants[0], Constant::String("a".to_string()));
+        assert_eq!(chunk.constants[1], Constant::Number(3.0));
+        assert_eq!(chunk.constants[2], Constant::String("a".to_string()));
+        assert_eq!(chunk.constants[3], Constant::Number(4.0));
+        assert_eq!(chunk.code, opcodes![
+            Opcode::Constant, 1,
+            Opcode::DefineGlobal, 0,
+            Opcode::Constant, 3,
+            Opcode::SetGlobal, 2,
+            Opcode::Pop,
+            Opcode::GetGlobal, 4,
             Opcode::Return
         ]);
     }

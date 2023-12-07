@@ -104,27 +104,37 @@ impl VM {
                     return (InterpretResult::OK, Some(value));
                 },
                 Opcode::DefineGlobal => {
-                    let index = self.read_byte() as usize;
-                    if let Constant::String(name) = self.read_constant(index) {
-                        let value = self.stack.peek();
-                        self.globals.insert(name.clone(), value.clone());
-                    } else {
-                        self.runtime_error("Expected global ident in definition to be a string");
-                    }
+                    let value = self.stack.pop();
+                    let name = self.read_next_constant_string();
+                    self.globals.insert(name.to_string(), value.clone());
+                    self.advance_ip();
                 }
                 Opcode::GetGlobal => {
-                    let index = self.read_byte() as usize;
-                    if let Constant::String(name) = self.read_constant(index) {
-                        if let Some(value) = self.globals.get(name) {
-                            self.stack.push(value.clone());
-                        } else {
-                            self.runtime_error("Undefined variable");
-                        }
+                    let name = self.read_next_constant_string();
+                    if let Some(value) = self.globals.get(name) {
+                        self.stack.push(value.clone());
                     } else {
-                        self.runtime_error("Expected global ident to be a string");
+                        self.runtime_error("Undefined variable");
+                    }
+                }
+                Opcode::SetGlobal => { // TODO add tests
+                    let name = self.read_next_constant_string();
+                    if let Some(value) = self.globals.get(name) {
+                        self.globals.insert(name.to_string(), self.stack.peek().clone());
+                    } else {
+                        self.runtime_error("Undefined variable");
                     }
                 }
             }
+        }
+    }
+
+    fn read_next_constant_string(&self) -> &str {
+        let constant_index = self.read_byte() as usize;
+        if let Constant::String(str) = self.read_constant(constant_index) {
+            str
+        } else {
+            panic!("Expected to read constant string");
         }
     }
 
@@ -134,7 +144,7 @@ impl VM {
     }
 
     /// Reads a raw byte from the chunk's code at current IP
-    fn read_byte(&mut self) -> u8 {
+    fn read_byte(&self) -> u8 {
         self.chunk.read_byte(self.ip)
     }
 
@@ -187,6 +197,7 @@ impl VM {
 #[cfg(test)]
 mod tests {
     use crate::chunk::Constant;
+    use crate::chunk::Constant::{Number, String};
     use crate::value::Value;
     use crate::utils::utils::*;
     use crate::vm::Opcode;
@@ -264,5 +275,20 @@ mod tests {
         write_constant!(vm, 0.0);
         write_return!(vm);
         run_and_expect!(vm, Value::Number(0.0));
+    }
+
+    #[test]
+    fn test_global_variables() {
+        let mut vm = super::init_vm();
+        vm.chunk.add_constant(String("myvar".to_string()));
+        vm.chunk.add_constant(Number(4.0));
+        vm.chunk.write_opcode(Opcode::Constant, 123);
+        vm.chunk.write_byte(1, 123);
+        vm.chunk.write_opcode(Opcode::DefineGlobal, 124);
+        vm.chunk.write_byte(0, 124);
+        vm.chunk.write_opcode(Opcode::GetGlobal, 124);
+        vm.chunk.write_byte(0, 124);
+        write_return!(vm);
+        run_and_expect!(vm, Value::Number(4.0));
     }
 }

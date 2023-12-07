@@ -1,7 +1,7 @@
 pub mod utils {
     macro_rules! write_constant {
     ($vm:expr, $value:expr) => {
-        $vm.chunk.write_constant(Constant::Number($value), 123);
+        $vm.chunk.write_constant(Constant::Number($value), 123)
     };
     }
 
