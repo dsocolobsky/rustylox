@@ -123,9 +123,9 @@ impl Parser {
         let global = self.parse_variable_name();
 
         if self.tmatch(TokenType::Equal) {
-            self.expression();
+            self.expression(); // var a = expr;
         } else {
-            self.emit_opcode(Opcode::Nil);
+            self.emit_opcode(Opcode::Nil); // var a; -> var a = nil;
         }
 
         self.consume(TokenType::Semicolon,

@@ -90,11 +90,6 @@ impl Chunk {
         constant_index
     }
 
-    pub(crate) fn write_get_global(&mut self, index: usize, line: usize) {
-        self.write_opcode(Opcode::GetGlobal, line);
-        self.write_byte(index as u8, line);
-    }
-
     /// Write a variable's name as constant to the chunk's constant table.
     // Globals are looked up by name during runtime and the name is too big
     // to fit in the stack so we ought to save it here.

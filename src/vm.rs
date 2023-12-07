@@ -119,7 +119,7 @@ impl VM {
                 }
                 Opcode::SetGlobal => { // TODO add tests
                     let name = self.read_next_constant_string();
-                    if let Some(value) = self.globals.get(name) {
+                    if self.globals.contains_key(name) {
                         self.globals.insert(name.to_string(), self.stack.peek().clone());
                     } else {
                         self.runtime_error("Undefined variable");
