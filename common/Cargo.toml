@@ -1,0 +1,13 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+num-derive = { version = "0.4.0", features = [] }
+num-traits = "0.2.16"
+phf = { version = "0.11.2", features = ["macros", "phf_macros"] }
+phf_macros = "0.11.2"
+strum = "0.25.0"
+strum_macros = { version = "0.25.1", features = [] }
+num = "0.4.1"

@@ -1,32 +1,32 @@
-use crate::value::{Value, ValueType};
+use common::{Value, ValueType};
 
-pub(crate) struct Stack {
+pub struct Stack {
     stack: Vec<Value>,
 }
 
-pub(crate) fn init_stack() -> Stack {
-    Stack {
-        stack: Vec::new(),
-    }
-}
-
 impl Stack {
-    pub(crate) fn push(&mut self, value: Value) {
+    pub fn init() -> Stack {
+        Stack {
+            stack: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, value: Value) {
         self.stack.push(value);
     }
 
-    pub(crate) fn pop(&mut self) -> Value {
+    pub fn pop(&mut self) -> Value {
         self.stack.pop().expect("Expected stack to not be empty")
     }
 
-    pub(crate) fn peek(&self) -> &Value {
+    pub fn peek(&self) -> &Value {
         if self.stack.is_empty() {
             panic!("Expected stack to not be empty");
         }
         self.peek_at(0)
     }
 
-    pub(crate) fn peek_at(&self, distance: usize) -> &Value {
+    pub fn peek_at(&self, distance: usize) -> &Value {
         if (self.stack.len() - 1) < distance {
             panic!("Expected stack to not be empty at distance {distance}");
         }
@@ -34,15 +34,15 @@ impl Stack {
         self.stack.get(index).expect("Expected stack to not be empty")
     }
 
-    pub(crate) fn is_number(&self, distance: usize) -> bool {
+    pub fn is_number(&self, distance: usize) -> bool {
         self.peek_at_is_type(distance) == ValueType::Number
     }
 
-    pub(crate) fn is_string(&self, distance: usize) -> bool {
+    pub fn is_string(&self, distance: usize) -> bool {
         self.peek_at_is_type(distance) == ValueType::String
     }
 
-    pub(crate) fn peek_at_is_type(&self, distance: usize) -> ValueType {
+    pub fn peek_at_is_type(&self, distance: usize) -> ValueType {
         if self.stack.is_empty() {
             panic!("Expected stack to not be empty");
         }
@@ -58,15 +58,15 @@ impl Stack {
     }
 
 
-    pub(crate) fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.stack.clear();
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.stack.is_empty()
     }
 
-    pub(crate) fn set_at(&mut self, distance: usize, value: Value) {
+    pub fn set_at(&mut self, distance: usize, value: Value) {
         if self.stack.is_empty() {
             panic!("Expected stack to not be empty");
         }
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_stack_pop() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         stack.push(Value::Number(3.0));
         if let Value::Number(n) = stack.pop() {
@@ -99,14 +99,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "Expected stack to not be empty")]
     fn test_stack_pop_empty() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         assert!(stack.is_empty());
         stack.pop();
     }
 
     #[test]
     fn test_stack_peek() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         if let Value::Number(number) = stack.peek() {
             assert_eq!(*number, 1.0);
@@ -116,13 +116,13 @@ mod tests {
     #[test]
     #[should_panic(expected = "Expected stack to not be empty")]
     fn test_stack_peek_empty() {
-        let stack = init_stack();
+        let stack = Stack::init();
         stack.peek();
     }
 
     #[test]
     fn test_stack_peek_at() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         stack.push(Value::Number(2.0));
         stack.push(Value::Number(3.0));
@@ -135,14 +135,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "Expected stack to not be empty at distance 1")]
     fn test_stack_peek_at_out_of_stack() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         stack.peek_at(1);
     }
 
     #[test]
     fn test_stack_is_number() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         assert!(stack.is_number(0));
     }
@@ -150,21 +150,21 @@ mod tests {
     #[test]
     #[should_panic(expected = "Expected stack to not be empty")]
     fn test_stack_is_number_empty_stack() {
-        let stack = init_stack();
+        let stack = Stack::init();
         assert!(stack.is_number(0));
     }
 
     #[test]
     #[should_panic(expected = "Expected stack to not be empty at distance 1")]
     fn test_stack_is_number_out_of_stack() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         assert!(stack.is_number(1));
     }
 
     #[test]
     fn test_stack_clear() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         stack.clear();
         assert!(stack.is_empty());
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_stack_set_at() {
-        let mut stack = init_stack();
+        let mut stack = Stack::init();
         stack.push(Value::Number(1.0));
         stack.push(Value::Number(2.0));
         stack.push(Value::Number(3.0));

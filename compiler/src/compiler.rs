@@ -1,6 +1,6 @@
-use crate::chunk::{Chunk, Constant, init_chunk, Opcode};
-use crate::disassembler::disassemble_chunk;
-use crate::{scanner};
+use num_derive::FromPrimitive;
+use common::{Chunk, Constant, disassemble_chunk, Opcode};
+use crate::scanner;
 use crate::scanner::{Token, TokenType};
 
 #[repr(u8)]
@@ -62,7 +62,7 @@ fn parse_rule(token_type: &TokenType) -> ParseRule {
     }
 }
 
-pub(crate) fn compile(source: &str) -> Option<Chunk> {
+pub fn compile(source: &str) -> Option<Chunk> {
     let mut parser = Parser::init(source);
     //let mut compiler = Compiler::init();
 
@@ -95,7 +95,7 @@ struct Parser {
 impl Parser {
     fn init(source: &str) -> Parser {
         Parser {
-            chunk: init_chunk(),
+            chunk: Chunk::init(),
             scanner: scanner::init_scanner(source),
             current: None,
             previous: None,
@@ -199,7 +199,7 @@ impl Parser {
                 (local_index, Opcode::GetLocal, Opcode::SetLocal)
             },
             None => {
-                (self.chunk.write_identifier_constant(name) as u8, Opcode::GetGlobal, Opcode::SetGlobal)
+                (self.chunk.write_identifier_constant(name.lexeme) as u8, Opcode::GetGlobal, Opcode::SetGlobal)
             }
         };
 
@@ -462,7 +462,7 @@ impl Parser {
             if self.previous_token_type() == TokenType::Semicolon { return; }
             match self.current_type() {
                 TokenType::Class | TokenType::Fun | TokenType::Var | TokenType::For | TokenType::If
-                 | TokenType::While | TokenType::Print | TokenType::Return => { return; },
+                | TokenType::While | TokenType::Print | TokenType::Return => { return; },
                 _ => {},
             }
         }
@@ -515,7 +515,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::chunk::{Constant, Opcode};
+    use common::{Constant, Opcode};
+
     use crate::compiler::compile;
 
     // Translates between a vector of Opcode and the u8 representation

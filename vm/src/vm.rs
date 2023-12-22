@@ -1,49 +1,38 @@
 use std::collections::HashMap;
-use crate::{chunk, disassembler, compiler, value, stack};
-use crate::chunk::{Constant, Opcode};
-use crate::value::Value;
+use common::{Chunk, Constant, disassemble_instruction, Opcode, Value};
+use crate::stack::Stack;
 
 const DEBUG: bool = true;
 
 #[derive(PartialEq, Eq, Debug)]
-pub(crate) enum InterpretResult {
+pub enum InterpretResult {
     OK,
     CompileError,
     RuntimeError
 }
 
-pub(crate) struct VM {
-    pub(crate) chunk: chunk::Chunk,
-    stack: stack::Stack,
+pub struct VM {
+    pub chunk: Chunk,
+    stack: Stack,
     ip: usize,
     globals: HashMap<String, Value>,
 }
 
-pub(crate) fn init_vm() -> VM {
-    VM {
-        chunk: chunk::init_chunk(),
-        stack: stack::init_stack(),
-        ip: 0,
-        globals: HashMap::new(),
-    }
-}
-
 impl VM {
-    pub(crate) fn interpret(&mut self, source: &str) -> (InterpretResult, Option<Value>) {
-        if let Some(chunk) = compiler::compile(source) {
-            self.chunk = chunk;
-            self.ip = 0;
-            self.run()
-        } else {
-            (InterpretResult::CompileError, None)
+    pub fn init(chunk: Chunk) -> VM {
+        VM {
+            chunk: chunk,
+            stack: Stack::init(),
+            ip: 0,
+            globals: HashMap::new(),
         }
     }
 
-    pub(crate) fn run(&mut self) -> (InterpretResult, Option<Value>) {
+    pub fn run(&mut self) -> (InterpretResult, Option<Value>) {
         loop {
             if DEBUG {
                 println!("ip: {0}", self.ip);
-                disassembler::disassemble_instruction(&self.chunk, self.ip);
+                disassemble_instruction(&self.chunk, self.ip);
             }
             let instruction = self.read_opcode();
             self.advance_ip();
@@ -63,7 +52,7 @@ impl VM {
                 Opcode::True => self.stack.push(Value::Bool(true)),
                 Opcode::Not => {
                     let value = self.stack.pop();
-                    self.stack.push(Value::Bool(value::is_falsey(&value)));
+                    self.stack.push(Value::Bool(value.is_falsey()));
                 },
                 Opcode::Equal => {
                     let b = self.stack.pop();
@@ -205,15 +194,15 @@ impl VM {
 
 #[cfg(test)]
 mod tests {
-    use crate::chunk::Constant;
-    use crate::chunk::Constant::{Number, String};
-    use crate::value::Value;
+    use common::*;
+    use common::Constant::{Number, String};
+
     use crate::utils::utils::*;
-    use crate::vm::Opcode;
+    use crate::vm::VM;
 
     #[test]
     fn test_return_float() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         write_constant!(vm, 3.14);
         write_return!(vm);
         run_and_expect!(vm, Value::Number(3.14));
@@ -221,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_float_equality() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         write_constant!(vm, 3.14);
         write_constant!(vm, 3.14);
         vm.chunk.write_opcode(Opcode::Equal, 124);
@@ -231,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_return_boolean() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         vm.chunk.write_opcode(Opcode::True, 123);
         write_return!(vm);
         run_and_expect!(vm, Value::Bool(true));
@@ -239,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_return_string() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         write_string!(vm, "Hello, world!");
         write_return!(vm);
         run_and_expect_str!(vm, "Hello, world!");
@@ -248,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_add() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         write_constant!(vm, 1.2);
         write_constant!(vm, 2.5);
         vm.chunk.write_opcode(super::Opcode::Add, 123);
@@ -258,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_string_concat() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         write_string!(vm, "Hello, ");
         write_string!(vm, "world!");
         vm.chunk.write_opcode(super::Opcode::Add, 123);
@@ -268,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_string_equality() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         write_string!(vm, "Banana");
         write_string!(vm, "Banana");
         vm.chunk.write_opcode(Opcode::Equal, 124);
@@ -278,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_print_string() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         write_string!(vm, "Banana");
         vm.chunk.write_opcode(Opcode::Print, 124);
         write_constant!(vm, 0.0);
@@ -288,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_global_variables() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         vm.chunk.add_constant(String("myvar".to_string()));
         vm.chunk.add_constant(Number(4.0));
         vm.chunk.write_opcode(Opcode::Constant, 123);
@@ -303,7 +292,7 @@ mod tests {
 
     #[test]
     fn test_local_variables() {
-        let mut vm = super::init_vm();
+        let mut vm = VM::init(Chunk::init());
         vm.chunk.add_constant(String("myvar".to_string()));
         vm.chunk.write_byte(0, 124);
         vm.chunk.write_opcode(Opcode::SetLocal, 124);
