@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use common::{Chunk, Constant, disassemble_instruction, Opcode, Value};
+
+use common::{chunk::Chunk, Constant, disassembler::disassemble_instruction, opcode::Opcode, Value};
+
 use crate::stack::Stack;
 
 const DEBUG: bool = true;
@@ -195,7 +197,9 @@ impl VM {
 #[cfg(test)]
 mod tests {
     use common::*;
-    use common::Constant::{Number, String};
+    use common::chunk::Chunk;
+    use common::Constant;
+    use common::opcode::Opcode;
 
     use crate::utils::utils::*;
     use crate::vm::VM;
@@ -278,8 +282,8 @@ mod tests {
     #[test]
     fn test_global_variables() {
         let mut vm = VM::init(Chunk::init());
-        vm.chunk.add_constant(String("myvar".to_string()));
-        vm.chunk.add_constant(Number(4.0));
+        vm.chunk.add_constant(Constant::String("myvar".to_string()));
+        vm.chunk.add_constant(Constant::Number(4.0));
         vm.chunk.write_opcode(Opcode::Constant, 123);
         vm.chunk.write_byte(1, 123);
         vm.chunk.write_opcode(Opcode::DefineGlobal, 124);
@@ -293,7 +297,7 @@ mod tests {
     #[test]
     fn test_local_variables() {
         let mut vm = VM::init(Chunk::init());
-        vm.chunk.add_constant(String("myvar".to_string()));
+        vm.chunk.add_constant(Constant::String("myvar".to_string()));
         vm.chunk.write_byte(0, 124);
         vm.chunk.write_opcode(Opcode::SetLocal, 124);
 

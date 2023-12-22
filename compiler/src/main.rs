@@ -1,4 +1,4 @@
-use common::Chunk;
+use common::chunk::Chunk;
 
 mod compiler;
 mod scanner;

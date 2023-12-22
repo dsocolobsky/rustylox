@@ -1,4 +1,5 @@
-use common::Chunk;
+use common::chunk::Chunk;
+
 use crate::vm::VM;
 
 mod vm;

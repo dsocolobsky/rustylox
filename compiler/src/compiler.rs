@@ -1,5 +1,7 @@
 use num_derive::FromPrimitive;
-use common::{Chunk, Constant, disassemble_chunk, Opcode};
+
+use common::{chunk::Chunk, Constant, disassembler::disassemble_chunk, opcode::Opcode};
+
 use crate::scanner;
 use crate::scanner::{Token, TokenType};
 
@@ -515,7 +517,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use common::{Constant, Opcode};
+    use common::{Constant, opcode::Opcode};
 
     use crate::compiler::compile;
 
