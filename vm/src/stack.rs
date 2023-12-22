@@ -4,6 +4,12 @@ pub struct Stack {
     stack: Vec<Value>,
 }
 
+impl std::fmt::Debug for Stack {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.stack)
+    }
+}
+
 impl Stack {
     pub fn init() -> Stack {
         Stack {
@@ -20,18 +26,25 @@ impl Stack {
     }
 
     pub fn peek(&self) -> &Value {
-        if self.stack.is_empty() {
+        if self.is_empty() {
             panic!("Expected stack to not be empty");
         }
         self.peek_at(0)
     }
 
     pub fn peek_at(&self, distance: usize) -> &Value {
-        if (self.stack.len() - 1) < distance {
+        if (self.len() - 1) < distance {
             panic!("Expected stack to not be empty at distance {distance}");
         }
-        let index = self.stack.len() - distance - 1;
+        let index = self.len() - distance - 1;
         self.stack.get(index).expect("Expected stack to not be empty")
+    }
+
+    pub fn peek_from_bottom(&self, distance: usize) -> &Value {
+        if (self.len() - 1) < distance {
+            panic!("Expected stack to not be empty at distance {distance}");
+        }
+        self.stack.get(distance).expect("Expected stack to not be empty")
     }
 
     pub fn is_number(&self, distance: usize) -> bool {
@@ -43,10 +56,10 @@ impl Stack {
     }
 
     pub fn peek_at_is_type(&self, distance: usize) -> ValueType {
-        if self.stack.is_empty() {
+        if self.is_empty() {
             panic!("Expected stack to not be empty");
         }
-        if (self.stack.len() - 1) < distance {
+        if (self.len() - 1) < distance {
             panic!("Expected stack to not be empty at distance {distance}");
         }
         match self.peek_at(distance) {
@@ -62,18 +75,21 @@ impl Stack {
         self.stack.clear();
     }
 
+    pub fn len(&self) -> usize {
+        self.stack.len()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.stack.is_empty()
     }
 
-    pub fn set_at(&mut self, distance: usize, value: Value) {
-        if self.stack.is_empty() {
+    pub fn set_at(&mut self, index: usize, value: Value) {
+        if self.is_empty() {
             panic!("Expected stack to not be empty");
         }
-        if (self.stack.len() - 1) < distance {
-            panic!("Expected stack to not be empty at distance {distance}");
+        if (self.len() - 1) < index {
+            panic!("Expected stack to not be empty at index {index}");
         }
-        let index = self.stack.len() - distance - 1;
         self.stack[index] = value;
     }
 }
@@ -177,9 +193,23 @@ mod tests {
         stack.push(Value::Number(2.0));
         stack.push(Value::Number(3.0));
 
-        stack.set_at(1, Value::Number(4.0));
-        assert_eq!(*stack.peek_at(0), Value::Number(3.0));
-        assert_eq!(*stack.peek_at(1), Value::Number(4.0));
-        assert_eq!(*stack.peek_at(2), Value::Number(1.0));
+        stack.set_at(0, Value::Number(4.0));
+        stack.set_at(1, Value::Number(5.0));
+        stack.set_at(2, Value::Number(6.0));
+        assert_eq!(*stack.peek_at(0), Value::Number(6.0));
+        assert_eq!(*stack.peek_at(1), Value::Number(5.0));
+        assert_eq!(*stack.peek_at(2), Value::Number(4.0));
+    }
+
+    #[test]
+    fn test_peek_from_bottom() {
+        let mut stack = Stack::init();
+        stack.push(Value::Number(1.0));
+        stack.push(Value::Number(2.0));
+        stack.push(Value::Number(3.0));
+
+        assert_eq!(*stack.peek_from_bottom(0), Value::Number(1.0));
+        assert_eq!(*stack.peek_from_bottom(1), Value::Number(2.0));
+        assert_eq!(*stack.peek_from_bottom(2), Value::Number(3.0));
     }
 }

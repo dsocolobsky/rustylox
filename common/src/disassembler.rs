@@ -48,8 +48,8 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
                 Opcode::DefineGlobal => disassemble_constant("DEFINE_GLOBAL", chunk, offset),
                 Opcode::GetGlobal => disassemble_constant("GET_GLOBAL", chunk, offset),
                 Opcode::SetGlobal => disassemble_constant("SET_GLOBAL", chunk, offset),
-                Opcode::GetLocal => disassemble_constant("GET_LOCAL", chunk, offset),
-                Opcode::SetLocal => disassemble_constant("SET_LOCAL", chunk, offset),
+                Opcode::GetLocal => disassemble_get_local("GET_LOCAL", chunk, offset),
+                Opcode::SetLocal => disassemble_get_local("SET_LOCAL", chunk, offset),
             }
         }
         None => {
@@ -72,5 +72,11 @@ fn disassemble_constant(name: &str, chunk: &Chunk, offset: usize) -> usize {
     print!("{:<16} {:>4} '", name, constant);
     let value = &chunk.constants[constant];
     println!("{value}'");
+    offset + 2
+}
+
+fn disassemble_get_local(name: &str, chunk: &Chunk, offset: usize) -> usize {
+    let constant = chunk.code[offset + 1].clone() as usize;
+    print!("{:<16} {:>4} '", name, constant);
     offset + 2
 }

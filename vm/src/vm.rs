@@ -9,13 +9,12 @@ const DEBUG: bool = true;
 #[derive(PartialEq, Eq, Debug)]
 pub enum InterpretResult {
     OK,
-    CompileError,
     RuntimeError
 }
 
 pub struct VM {
     pub chunk: Chunk,
-    stack: Stack,
+    pub stack: Stack,
     ip: usize,
     globals: HashMap<String, Value>,
 }
@@ -33,8 +32,11 @@ impl VM {
     pub fn run(&mut self) -> (InterpretResult, Option<Value>) {
         loop {
             if DEBUG {
-                println!("ip: {0}", self.ip);
+                println!("========= ip: {0} =============", self.ip);
                 disassemble_instruction(&self.chunk, self.ip);
+                println!("");
+                println!("{:?}", self.stack);
+                println!("===========================================");
             }
             let instruction = self.read_opcode();
             self.advance_ip();
@@ -119,11 +121,13 @@ impl VM {
                 Opcode::GetLocal => {
                     // We have to re-push the value at the top of the stack
                     let slot = self.read_byte() as usize;
-                    self.stack.push(self.stack.peek_at(slot).clone());
+                    self.stack.push(self.stack.peek_from_bottom(slot).clone());
+                    self.advance_ip();
                 }
                 Opcode::SetLocal => {
                     let slot = self.read_byte() as usize;
                     self.stack.set_at(slot, self.stack.peek().clone());
+                    self.advance_ip();
                 }
             }
         }
@@ -200,9 +204,8 @@ mod tests {
     use common::chunk::Chunk;
     use common::Constant;
     use common::opcode::Opcode;
-
-    use crate::utils::utils::*;
     use crate::vm::VM;
+    use crate::{run_and_expect, run_and_expect_str, write_constant, write_return, write_string};
 
     #[test]
     fn test_return_float() {
@@ -295,15 +298,41 @@ mod tests {
     }
 
     #[test]
-    fn test_local_variables() {
+    fn test_get_local_variable() {
         let mut vm = VM::init(Chunk::init());
-        vm.chunk.add_constant(Constant::String("myvar".to_string()));
-        vm.chunk.write_byte(0, 124);
-        vm.chunk.write_opcode(Opcode::SetLocal, 124);
 
+        // I push some garbage
+        vm.stack.push(Value::Number(5.0));
+        vm.stack.push(Value::Number(6.0));
+        vm.stack.push(Value::Number(7.0));
+        vm.stack.push(Value::Number(8.0));
+
+        // Local variable index and then GET_LOCAL
         vm.chunk.write_opcode(Opcode::GetLocal, 124);
-        vm.chunk.write_byte(0, 124);
+        vm.chunk.write_byte(2, 124);
         write_return!(vm);
-        run_and_expect!(vm, Value::Number(4.0));
+
+        run_and_expect!(vm, Value::Number(7.0));
+    }
+
+    #[test]
+    fn test_set_local_variable() {
+        let mut vm = VM::init(Chunk::init());
+
+        // I push some garbage
+        vm.stack.push(Value::Number(5.0));
+        vm.stack.push(Value::Number(6.0));
+        vm.stack.push(Value::Number(7.0));
+        // New value to set
+        vm.stack.push(Value::Number(16.0));
+
+        // Local variable index and then GET_LOCAL
+        vm.chunk.write_opcode(Opcode::SetLocal, 124);
+        vm.chunk.write_byte(1, 124); // Set stack[1] = 16.0
+        vm.chunk.write_opcode(Opcode::GetLocal, 124);
+        vm.chunk.write_byte(1, 124);
+        write_return!(vm);
+
+        run_and_expect!(vm, Value::Number(16.0));
     }
 }

@@ -6,11 +6,7 @@ mod vm;
 mod stack;
 mod utils;
 
-fn read_file(path: &str) -> String {
-    std::fs::read_to_string(path).expect("Something went wrong reading the file")
-}
-
-fn run_file(path: &str) {
+fn run_file(_path: &str) {
     //let chunk = compile_from_file(path).expect("Failed to compile");
     // TODO fix this, probably will have to move compiler code to common
     let mut vm = VM::init(Chunk::init());
