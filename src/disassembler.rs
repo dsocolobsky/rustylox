@@ -48,6 +48,8 @@ pub(crate) fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
                 Opcode::DefineGlobal => disassemble_constant("DEFINE_GLOBAL", chunk, offset),
                 Opcode::GetGlobal => disassemble_constant("GET_GLOBAL", chunk, offset),
                 Opcode::SetGlobal => disassemble_constant("SET_GLOBAL", chunk, offset),
+                Opcode::GetLocal => disassemble_constant("GET_LOCAL", chunk, offset),
+                Opcode::SetLocal => disassemble_constant("SET_LOCAL", chunk, offset),
             }
         }
         None => {

@@ -65,6 +65,17 @@ impl Stack {
     pub(crate) fn is_empty(&self) -> bool {
         self.stack.is_empty()
     }
+
+    pub(crate) fn set_at(&mut self, distance: usize, value: Value) {
+        if self.stack.is_empty() {
+            panic!("Expected stack to not be empty");
+        }
+        if (self.stack.len() - 1) < distance {
+            panic!("Expected stack to not be empty at distance {distance}");
+        }
+        let index = self.stack.len() - distance - 1;
+        self.stack[index] = value;
+    }
 }
 
 #[cfg(test)]
@@ -157,5 +168,18 @@ mod tests {
         stack.push(Value::Number(1.0));
         stack.clear();
         assert!(stack.is_empty());
+    }
+
+    #[test]
+    fn test_stack_set_at() {
+        let mut stack = init_stack();
+        stack.push(Value::Number(1.0));
+        stack.push(Value::Number(2.0));
+        stack.push(Value::Number(3.0));
+
+        stack.set_at(1, Value::Number(4.0));
+        assert_eq!(*stack.peek_at(0), Value::Number(3.0));
+        assert_eq!(*stack.peek_at(1), Value::Number(4.0));
+        assert_eq!(*stack.peek_at(2), Value::Number(1.0));
     }
 }

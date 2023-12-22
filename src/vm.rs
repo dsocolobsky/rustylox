@@ -125,6 +125,15 @@ impl VM {
                         self.runtime_error("Undefined variable");
                     }
                 }
+                Opcode::GetLocal => {
+                    // We have to re-push the value at the top of the stack
+                    let slot = self.read_byte() as usize;
+                    self.stack.push(self.stack.peek_at(slot).clone());
+                }
+                Opcode::SetLocal => {
+                    let slot = self.read_byte() as usize;
+                    self.stack.set_at(slot, self.stack.peek().clone());
+                }
             }
         }
     }
@@ -287,6 +296,19 @@ mod tests {
         vm.chunk.write_opcode(Opcode::DefineGlobal, 124);
         vm.chunk.write_byte(0, 124);
         vm.chunk.write_opcode(Opcode::GetGlobal, 124);
+        vm.chunk.write_byte(0, 124);
+        write_return!(vm);
+        run_and_expect!(vm, Value::Number(4.0));
+    }
+
+    #[test]
+    fn test_local_variables() {
+        let mut vm = super::init_vm();
+        vm.chunk.add_constant(String("myvar".to_string()));
+        vm.chunk.write_byte(0, 124);
+        vm.chunk.write_opcode(Opcode::SetLocal, 124);
+
+        vm.chunk.write_opcode(Opcode::GetLocal, 124);
         vm.chunk.write_byte(0, 124);
         write_return!(vm);
         run_and_expect!(vm, Value::Number(4.0));

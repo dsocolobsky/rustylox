@@ -27,6 +27,11 @@ struct ParseRule {
     precedence: Precedence
 }
 
+struct Local {
+    name: Token,
+    depth: i16 // Scope depth of the block where the variable was defined
+}
+
 fn parse_rule(token_type: &TokenType) -> ParseRule {
     use TokenType::*;
     match token_type {
@@ -58,14 +63,8 @@ fn parse_rule(token_type: &TokenType) -> ParseRule {
 }
 
 pub(crate) fn compile(source: &str) -> Option<Chunk> {
-    let mut parser = Parser {
-        chunk: init_chunk(),
-        scanner: scanner::init_scanner(source),
-        current: None,
-        previous: None,
-        had_error: false,
-        panic_mode: false,
-    };
+    let mut parser = Parser::init(source);
+    //let mut compiler = Compiler::init();
 
     parser.advance();
     while !parser.tmatch(TokenType::EOF) {
@@ -88,9 +87,25 @@ struct Parser {
     previous: Option<Token>,
     had_error: bool,
     panic_mode: bool,
+    // compiler stuff
+    locals: Vec<Local>,
+    scope_depth: i16
 }
 
 impl Parser {
+    fn init(source: &str) -> Parser {
+        Parser {
+            chunk: init_chunk(),
+            scanner: scanner::init_scanner(source),
+            current: None,
+            previous: None,
+            had_error: false,
+            panic_mode: false,
+            locals: Vec::new(),
+            scope_depth: 0,
+        }
+    }
+
     fn advance(&mut self) {
         if let Some(val) = self.current.as_ref() {
             self.previous = Some(val.clone());
@@ -136,10 +151,37 @@ impl Parser {
 
     fn parse_variable_name(&mut self) -> usize {
         self.consume(TokenType::Identifier, "Expected variable name");
+
+        self.declare_variable();
+        if self.is_in_local_scope() {
+            return 0; // Doesnt matter so return whatever
+        }
+
         if let Some(ident_token) = self.previous.clone() {
             self.make_constant(Constant::String(ident_token.lexeme))
         } else {
             panic!("Expected previous to be an identifier")
+        }
+    }
+
+    fn mark_initialized(&mut self) {
+        if self.is_in_local_scope() {
+            let local = self.locals.last_mut().unwrap();
+            local.depth = self.scope_depth;
+        }
+    }
+
+    fn declare_variable(&mut self) {
+        if self.is_in_global_scope() {
+            return; // We only do this for locals
+        }
+
+        let name = self.previous.clone().unwrap();
+
+        if self.name_already_exists_in_scope(&name) {
+            self.error_at_current("Variable with this name already declared in this scope");
+        } else {
+            self.add_local(name);
         }
     }
 
@@ -152,19 +194,44 @@ impl Parser {
     }
 
     fn named_variable(&mut self, name: Token, can_assign: bool) {
-        let index = self.chunk.write_identifier_constant(name);
+        let (index, get_opt, set_opt) = match self.resolve_local(name.clone()) {
+            Some(local_index) => {
+                (local_index, Opcode::GetLocal, Opcode::SetLocal)
+            },
+            None => {
+                (self.chunk.write_identifier_constant(name) as u8, Opcode::GetGlobal, Opcode::SetGlobal)
+            }
+        };
 
         if can_assign && self.tmatch(TokenType::Equal) {
             self.expression();
-            self.emit_opcode(Opcode::SetGlobal);
+            self.emit_opcode(set_opt);
         } else {
-            self.emit_opcode(Opcode::GetGlobal);
+            self.emit_opcode(get_opt);
         }
 
-        self.emit_byte(index as u8);
+        self.emit_byte(index);
+    }
+
+    fn resolve_local(&mut self, name: Token) -> Option<u8> {
+        for (i, local) in self.locals.iter().enumerate().rev() {
+            if name.lexeme == local.name.lexeme {
+                if local.depth == -1 {
+                    self.error_at_current("Cannot read local variable in its own initializer");
+                }
+                return Some(i as u8);
+            }
+        }
+        None
     }
 
     fn define_variable(&mut self, global_index: usize) {
+        if self.scope_depth > 0 {
+            self.mark_initialized();
+            // If we are inside a local scope: return,
+            // there is nothing left to do, the variable is already in the stack
+            return;
+        }
         self.emit_opcode(Opcode::DefineGlobal);
         self.emit_byte(global_index as u8);
     }
@@ -174,6 +241,10 @@ impl Parser {
             self.parse_print_statement();
         } else if self.tmatch(TokenType::Return) {
             self.parse_return_statement();
+        } else if self.tmatch(TokenType::LeftBrace) {
+            self.begin_scope();
+            self.parse_block();
+            self.end_scope();
         } else {
             self.parse_expression_statement();
         }
@@ -193,6 +264,13 @@ impl Parser {
             self.consume(TokenType::Semicolon, "Expect ';' after return value.");
             self.emit_opcode(Opcode::Return);
         }
+    }
+
+    fn parse_block(&mut self) {
+        while !self.current_type_is(TokenType::RightBrace) && !self.current_type_is(TokenType::EOF) {
+            self.parse_declaration();
+        }
+        self.consume(TokenType::RightBrace, "Expect '}' after block.");
     }
 
     fn expression(&mut self) {
@@ -390,6 +468,49 @@ impl Parser {
         }
         self.advance();
     }
+
+    // ============= COMPILER STUFF ======
+    // TODO move to a separate file or struct
+    fn is_in_global_scope(&self) -> bool {
+        self.scope_depth == 0
+    }
+
+    fn is_in_local_scope(&self) -> bool {
+        self.scope_depth > 0
+    }
+
+    fn begin_scope(&mut self) {
+        self.scope_depth += 1;
+    }
+
+    fn end_scope(&mut self) {
+        self.scope_depth -= 1;
+
+        while !self.locals.is_empty() && self.locals.last().unwrap().depth > self.scope_depth {
+            self.emit_opcode(Opcode::Pop);
+            self.locals.pop();
+        }
+    }
+
+    fn add_local(&mut self, name: Token) {
+        if self.locals.len() == u8::MAX as usize {
+            panic!("Too many local variables in function");
+        }
+        self.locals.push(Local { name, depth: -1 });
+    }
+
+    fn name_already_exists_in_scope(&self, name: &Token) -> bool {
+        // We iterate backwards since the current scope is going to be at the end
+        for local in self.locals.iter().rev() {
+            if local.depth != -1 && local.depth < self.scope_depth {
+                break;
+            }
+            if name.lexeme == local.name.lexeme {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -495,5 +616,24 @@ mod tests {
             Opcode::GetGlobal, 4,
             Opcode::Return
         ]);
+    }
+
+    #[test]
+    fn local_variables() {
+        let Some(chunk) = compile("{ var a = 4.0; print a; }") else { panic!() };
+        /*assert_eq!(chunk.constants[0], Constant::String("a".to_string()));
+        assert_eq!(chunk.constants[1], Constant::Number(3.0));
+        assert_eq!(chunk.constants[2], Constant::String("b".to_string()));
+        assert_eq!(chunk.constants[3], Constant::Number(4.0));
+        assert_eq!(chunk.code, opcodes![
+            Opcode::Constant, 1, // Since in [0] we have "a"
+            Opcode::DefineGlobal, 0, // Define global value for "a"
+            Opcode::Constant, 3, // Since in [1] we have 3.0 and in [2] we have "b"
+            Opcode::DefineGlobal, 2, // Define global value for "b"
+            Opcode::GetGlobal, 4,
+            Opcode::GetGlobal, 5,
+            Opcode::Multiply,
+            Opcode::Return
+        ]);*/
     }
 }

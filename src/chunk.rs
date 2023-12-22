@@ -24,6 +24,8 @@ pub(crate) enum Opcode {
     DefineGlobal = 16,
     GetGlobal = 17,
     SetGlobal = 18,
+    GetLocal = 19,
+    SetLocal = 20,
 }
 
 fn byte_to_opcode(byte: u8) -> Opcode {
