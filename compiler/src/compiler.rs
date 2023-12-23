@@ -59,6 +59,10 @@ fn parse_rule(token_type: &TokenType) -> ParseRule {
             ParseRule { prefix: None, infix: Some(Parser::binary), precedence: Precedence::Comparison },
         Identifier =>
             ParseRule { prefix: Some(Parser::variable), infix: None, precedence: Precedence::None },
+        And =>
+            ParseRule { prefix: None, infix: Some(Parser::and), precedence: Precedence::And },
+        Or =>
+            ParseRule { prefix: None, infix: Some(Parser::or), precedence: Precedence::Or },
         _ =>
             ParseRule { prefix: None, infix: None, precedence: Precedence::None }
     }
@@ -193,6 +197,31 @@ impl Parser {
         } else {
             panic!("Expected previous to be a token")
         }
+    }
+
+    fn and(&mut self) {
+        // At the point this is called, the left side of the expression will be on top of the stack
+        // If the value is false then we skip the right side (because it's all false)
+        let end_jump = self.emit_jump(Opcode::JumpIfFalse);
+
+        // Otherwise (we have one True) we discard that value and evaluate the right side
+        self.emit_opcode(Opcode::Pop);
+        self.parse_precedence(Precedence::And);
+
+        self.patch_jump(end_jump);
+    }
+
+    fn or(&mut self) {
+        // Remember we have the left side result on top of the stack
+        let else_jump = self.emit_jump(Opcode::JumpIfFalse);
+        // If it's true we land here and we skip evaluating the right side towards the end
+        let end_jump = self.emit_jump(Opcode::Jump);
+        self.patch_jump(else_jump);
+        // If it's false we land here, we pop the left side and evaluate right side
+        self.emit_opcode(Opcode::Pop);
+
+        self.parse_precedence(Precedence::Or);
+        self.patch_jump(end_jump);
     }
 
     fn named_variable(&mut self, name: Token, can_assign: bool) {

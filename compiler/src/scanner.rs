@@ -36,7 +36,7 @@ static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub(crate) struct Token {
+pub struct Token {
     pub(crate) token_type: TokenType,
     pub(crate) start: usize,
     pub(crate) length: usize,
@@ -44,14 +44,14 @@ pub(crate) struct Token {
     pub(crate) lexeme: String,
 }
 
-pub(crate) struct Scanner {
+pub struct Scanner {
     source: String,
     start: usize,
     current: usize,
     line: usize,
 }
 
-pub(crate) fn init_scanner(source: &str) -> Scanner {
+pub fn init_scanner(source: &str) -> Scanner {
     Scanner {
         source: source.to_string(),
         start: 0,
@@ -61,7 +61,7 @@ pub(crate) fn init_scanner(source: &str) -> Scanner {
 }
 
 impl Scanner {
-    pub(crate) fn scan_token(&mut self) -> Token {
+    pub fn scan_token(&mut self) -> Token {
         self.skip_whitespace();
         self.start = self.current;
         if self.is_at_end() {

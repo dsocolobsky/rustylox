@@ -3,6 +3,7 @@ use std::fmt;
 pub mod opcode;
 pub mod disassembler;
 pub mod chunk;
+pub mod utils;
 
 #[derive(Debug, PartialEq)]
 pub enum Constant {

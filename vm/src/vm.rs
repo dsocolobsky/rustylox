@@ -227,11 +227,12 @@ impl VM {
 #[cfg(test)]
 mod tests {
     use common::*;
+    use common::{run_and_expect, run_and_expect_str, write_constant, write_return, write_string};
     use common::chunk::Chunk;
     use common::Constant;
     use common::opcode::Opcode;
+
     use crate::vm::VM;
-    use crate::{run_and_expect, run_and_expect_str, write_constant, write_return, write_string};
 
     #[test]
     fn test_return_float() {
