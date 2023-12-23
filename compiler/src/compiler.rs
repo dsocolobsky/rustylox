@@ -243,6 +243,8 @@ impl Parser {
             self.parse_print_statement();
         } else if self.tmatch(TokenType::Return) {
             self.parse_return_statement();
+        } else if self.tmatch(TokenType::If) {
+            self.parse_if_statement();
         } else if self.tmatch(TokenType::LeftBrace) {
             self.begin_scope();
             self.parse_block();
@@ -266,6 +268,45 @@ impl Parser {
             self.consume(TokenType::Semicolon, "Expect ';' after return value.");
             self.emit_opcode(Opcode::Return);
         }
+    }
+
+    fn parse_if_statement(&mut self) {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'if'.");
+        self.expression();
+        self.consume(TokenType::RightParen, "Expect ')' after condition.");
+
+        let then_jump = self.emit_jump(Opcode::JumpIfFalse);
+        self.emit_opcode(Opcode::Pop); // Pop the condition value
+        self.parse_statement();
+
+        // We need to skip the true branch if we have fallen in the else branch
+        let else_jump = self.emit_jump(Opcode::Jump);
+        // Backpatch the jump address once we know it, since we used a placeholder before
+        self.patch_jump(then_jump);
+        self.emit_opcode(Opcode::Pop); // Pop the condition value
+
+        if self.tmatch(TokenType::Else) {
+            self.parse_statement();
+        }
+        self.patch_jump(else_jump);
+    }
+
+    fn emit_jump(&mut self, opcode: Opcode) -> usize {
+        self.emit_opcode(opcode);
+        self.emit_byte(0xff); // Placeholder jump address
+        self.emit_byte(0xff);
+        self.chunk.code.len() - 2 // Return the address of the jump opcode
+    }
+
+    // Goes back to a jump instruction and patches-in the new jump address
+    fn patch_jump(&mut self, offset: usize) {
+        // Adjust for the 2 bytes in the jump address, we need the opcode address
+        let jump = self.chunk.code.len() - offset - 2;
+        if jump > u16::MAX as usize {
+            self.error_at_current("Too much code to jump over");
+        }
+        self.chunk.code[offset] = ((jump >> 8) & 0xff) as u8;
+        self.chunk.code[offset + 1] = (jump & 0xff) as u8;
     }
 
     fn parse_block(&mut self) {
@@ -638,5 +679,21 @@ mod tests {
             Opcode::Multiply,
             Opcode::Return
         ]);*/
+    }
+
+    #[test]
+    fn test_if_statement() {
+        let Some(chunk) = compile("if (true) { print 1; } else { print 2; }") else { panic!() };
+        assert_eq!(chunk.code, opcodes![
+            Opcode::True,
+            Opcode::JumpIfFalse, 0, 7, // Placeholder jump address
+            Opcode::Pop,
+            Opcode::Constant, 0,
+            Opcode::Print,
+            Opcode::Jump, 0, 4, // Placeholder jump address
+            Opcode::Pop,
+            Opcode::Constant, 1,
+            Opcode::Print
+        ]);
     }
 }

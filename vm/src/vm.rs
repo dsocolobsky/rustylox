@@ -91,7 +91,12 @@ impl VM {
                 Opcode::Pop => {
                     self.stack.pop();
                     ()
-                }
+                },
+                Opcode::Push => {
+                    let value = self.read_byte();
+                    self.stack.push(Value::Number(value as f64));
+                    self.advance_ip();
+                },
                 Opcode::Return => {
                     let value = self.stack.pop();
                     return (InterpretResult::OK, Some(value));
@@ -128,7 +133,21 @@ impl VM {
                     let slot = self.read_byte() as usize;
                     self.stack.set_at(slot, self.stack.peek().clone());
                     self.advance_ip();
-                }
+                },
+                Opcode::Jump => {
+                    let offset = self.read_short() as usize;
+                    self.ip += offset;
+                },
+                Opcode::JumpIfFalse => {
+                    let offset = self.read_short() as usize;
+                    let condition = self.stack.peek();
+                    if condition.is_falsey() {
+                        self.ip += offset;
+                    } else {
+                        self.advance_ip();
+                        self.advance_ip();
+                    }
+                },
             }
         }
     }
@@ -150,6 +169,13 @@ impl VM {
     /// Reads a raw byte from the chunk's code at current IP
     fn read_byte(&self) -> u8 {
         self.chunk.read_byte(self.ip)
+    }
+
+    /// Reads a short (2 bytes) from the chunk's code at current IP
+    fn read_short(&self) -> u16 {
+        let byte1 = self.chunk.read_byte(self.ip) as u16;
+        let byte2 = self.chunk.read_byte(self.ip + 1) as u16;
+        (byte1 << 8) | byte2
     }
 
     /// Reads an opcode from the chunk's code at current IP
@@ -334,5 +360,63 @@ mod tests {
         write_return!(vm);
 
         run_and_expect!(vm, Value::Number(16.0));
+    }
+
+    #[test]
+    fn test_jump() {
+        let mut vm = VM::init(Chunk::init());
+        vm.chunk.write_opcode(Opcode::Jump, 123);
+        vm.chunk.write_short(4, 123); // Skip 4 instructions towards the Multiply
+        vm.stack.push(Value::Number(2.0));
+        vm.stack.push(Value::Number(3.0));
+        vm.chunk.write_opcode(Opcode::Add, 124);
+        write_return!(vm);
+        vm.chunk.write_opcode(Opcode::Multiply, 124);
+        write_return!(vm);
+        vm.chunk.write_opcode(Opcode::Subtract, 124);
+        write_return!(vm);
+        run_and_expect!(vm, Value::Number(6.0));
+    }
+
+    #[test]
+    fn test_jump_if_false() {
+        let mut vm = VM::init(Chunk::init());
+        vm.stack.push(Value::Bool(false));
+        vm.chunk.write_opcode(Opcode::JumpIfFalse, 123);
+        vm.chunk.write_short(6, 123); // Skip 4 instructions towards the Push 6
+        vm.chunk.write_opcode(Opcode::Pop, 124);
+
+        vm.chunk.write_opcode(Opcode::Push, 124);
+        vm.chunk.write_byte(5, 124);
+        write_return!(vm);
+
+        vm.chunk.write_opcode(Opcode::Push, 124); // Jump here
+        vm.chunk.write_byte(6, 124);
+        write_return!(vm);
+
+        vm.chunk.write_opcode(Opcode::Push, 124);
+        vm.chunk.write_byte(7, 124);
+        write_return!(vm);
+
+        run_and_expect!(vm, Value::Number(6.0));
+    }
+
+    #[test]
+    fn test_jump_if_false_do_not_take() {
+        let mut vm = VM::init(Chunk::init());
+        vm.stack.push(Value::Bool(true));
+        vm.chunk.write_opcode(Opcode::JumpIfFalse, 123);
+        vm.chunk.write_short(6, 123); // Skip 4 instructions towards the Push 6
+        vm.chunk.write_opcode(Opcode::Pop, 124);
+
+        vm.chunk.write_opcode(Opcode::Push, 124);
+        vm.chunk.write_byte(5, 124);
+        write_return!(vm);
+
+        vm.chunk.write_opcode(Opcode::Push, 124); // Jump here
+        vm.chunk.write_byte(6, 124);
+        write_return!(vm);
+
+        run_and_expect!(vm, Value::Number(5.0));
     }
 }

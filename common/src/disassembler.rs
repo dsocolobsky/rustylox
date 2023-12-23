@@ -50,6 +50,9 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
                 Opcode::SetGlobal => disassemble_constant("SET_GLOBAL", chunk, offset),
                 Opcode::GetLocal => disassemble_get_local("GET_LOCAL", chunk, offset),
                 Opcode::SetLocal => disassemble_get_local("SET_LOCAL", chunk, offset),
+                Opcode::Jump => disassemble_short_jump("JUMP", 1, chunk, offset),
+                Opcode::JumpIfFalse => disassemble_short_jump("JUMP_IF_FALSE", 1, chunk, offset),
+                Opcode::Push => disassemble_get_local("PUSH", chunk, offset),
             }
         }
         None => {
@@ -77,6 +80,27 @@ fn disassemble_constant(name: &str, chunk: &Chunk, offset: usize) -> usize {
 
 fn disassemble_get_local(name: &str, chunk: &Chunk, offset: usize) -> usize {
     let constant = chunk.code[offset + 1].clone() as usize;
-    print!("{:<16} {:>4} '", name, constant);
+    println!("{:<16} {:>4} '", name, constant);
     offset + 2
+}
+
+fn disassemble_short_jump(name: &str, sign: i8, chunk: &Chunk, offset: usize) -> usize {
+    let byte1 = chunk.code[offset + 1].clone() as usize;
+    let byte2 = chunk.code[offset + 2].clone() as usize;
+    let jump = byte1 << 8 | byte2;
+    let j2 = (sign as i32) * (jump as i32);
+    if let Some(total_jump) = add_offset(offset + 3, j2) {
+        println!("{:<16} {:>4} -> {:4}'", name, offset, total_jump);
+    } else {
+        println!("{:<16} {:>4} -> ???'", name, offset);
+    }
+    offset + 3
+}
+
+fn add_offset(u: usize, i: i32) -> Option<usize> {
+    if i.is_negative() {
+        u.checked_sub(i.wrapping_abs() as u32 as usize)
+    } else {
+        u.checked_add(i as usize)
+    }
 }

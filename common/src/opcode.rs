@@ -24,6 +24,9 @@ pub enum Opcode {
     SetGlobal = 18,
     GetLocal = 19,
     SetLocal = 20,
+    Jump = 21,
+    JumpIfFalse = 22,
+    Push = 23,
 }
 
 impl Opcode {

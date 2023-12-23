@@ -22,6 +22,12 @@ impl Chunk {
         self.lines.push(line);
     }
 
+    /// Write a raw short (2 bytes)
+    pub fn write_short(&mut self, short: u16, line: usize) {
+        self.write_byte((short >> 8) as u8, line);
+        self.write_byte(short as u8, line);
+    }
+
     /// Write an opcode to the chunk
     pub fn write_opcode(&mut self, opcode: Opcode, line: usize) {
         self.write_byte(opcode as u8, line);
